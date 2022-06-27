@@ -1,0 +1,30 @@
+#include "ChainIDWithSequenceNumbersOfMissingResidues.h"
+
+ChainIDWithSequenceNumbersOfMissingResidues::ChainIDWithSequenceNumbersOfMissingResidues()
+{
+
+}
+
+ChainIDWithSequenceNumbersOfMissingResidues::ChainIDWithSequenceNumbersOfMissingResidues(const ChainIDWithSequenceNumbersOfMissingResidues& chainIDWithSequenceNumbersOfMissingResidues)
+{
+	set(chainIDWithSequenceNumbersOfMissingResidues.m_chainIDFromInputPDBFile, chainIDWithSequenceNumbersOfMissingResidues.m_seqNumbersOfMissingResidues);
+}
+
+ChainIDWithSequenceNumbersOfMissingResidues::ChainIDWithSequenceNumbersOfMissingResidues(string& chainIDFromInputPDBFile, rg_dList<rg_INT>& seqNumbersOfMissingResidues)
+{
+	set(chainIDFromInputPDBFile, seqNumbersOfMissingResidues);
+}
+
+ChainIDWithSequenceNumbersOfMissingResidues::~ChainIDWithSequenceNumbersOfMissingResidues()
+{
+}
+
+ChainIDWithSequenceNumbersOfMissingResidues& ChainIDWithSequenceNumbersOfMissingResidues::operator=(const ChainIDWithSequenceNumbersOfMissingResidues& chainIDWithSequenceNumbersOfMissingResidues)
+{
+	if(this == &chainIDWithSequenceNumbersOfMissingResidues)
+		return *this;
+
+	set(chainIDWithSequenceNumbersOfMissingResidues.m_chainIDFromInputPDBFile, chainIDWithSequenceNumbersOfMissingResidues.m_seqNumbersOfMissingResidues);
+
+	return *this;
+}

@@ -1,0 +1,4615 @@
+#include "VoronoiDiagramCIC.h"
+using namespace V::GeometryTier;
+
+#include "rg_TMatrix2D.h"
+#include "Disk.h"
+#include <vector>
+#include <map>
+using namespace std;
+
+
+VoronoiDiagramCIC::VoronoiDiagramCIC()
+{
+    m_containerGenerator = NULL;
+}
+
+
+VoronoiDiagramCIC::VoronoiDiagramCIC(const VoronoiDiagramCIC& CIC)
+{
+    copyFrom(CIC);
+}
+
+
+VoronoiDiagramCIC::~VoronoiDiagramCIC()
+{
+     clear();
+}
+
+
+VoronoiDiagramCIC& VoronoiDiagramCIC::operator=(const VoronoiDiagramCIC& CIC)
+{
+    if (this == &CIC)
+    {
+        return *this;
+    }
+
+    clear();
+    copyFrom(CIC);
+
+    return *this;
+}
+
+
+void VoronoiDiagramCIC::copyFrom(const VoronoiDiagramCIC& VD_CIC)
+{
+   
+    list<VoronoiDiagramCIC*> allVDs_Input;
+    list<Generator2D*>       allGeneratorsInHierarcicalVD_Input;
+	list<VFace2D*>           allFacesInHierarcicalVD_Input;
+	list<VEdge2D*>           allEdgesInHierarcicalVD_Input;
+	list<VVertex2D*>         allVerticesInHierarcicalVD_Input;
+    
+    getAllVEntities(VD_CIC, allVDs_Input, allGeneratorsInHierarcicalVD_Input, allFacesInHierarcicalVD_Input, allEdgesInHierarcicalVD_Input, allVerticesInHierarcicalVD_Input);
+
+    unordered_map<VoronoiDiagramCIC*, VoronoiDiagramCIC*> VDMapFromOldToNew;
+	unordered_map<Generator2D*,       Generator2D*>       generatorMapFromOldToNew;
+	unordered_map<VFace2D*,           VFace2D*>           faceMapFromOldToNew;
+	unordered_map<VEdge2D*,           VEdge2D*>           edgeMapFromOldToNew;
+	unordered_map<VVertex2D*,         VVertex2D*>         vertexMapFromOldToNew;
+
+    createNLinkVDsAndThoseEntities(allVDs_Input, const_cast<VoronoiDiagramCIC*>(&VD_CIC),
+                                   allGeneratorsInHierarcicalVD_Input,
+                                   allFacesInHierarcicalVD_Input,
+                                   allEdgesInHierarcicalVD_Input,
+                                   allVerticesInHierarcicalVD_Input,
+                                   VDMapFromOldToNew,
+                                   generatorMapFromOldToNew,
+                                   faceMapFromOldToNew,
+                                   edgeMapFromOldToNew,
+                                   vertexMapFromOldToNew);
+
+    insertCreatedEntitiesToVDs(allVDs_Input, 
+                               VDMapFromOldToNew, 
+                               generatorMapFromOldToNew, 
+                               faceMapFromOldToNew, 
+                               edgeMapFromOldToNew, 
+                               vertexMapFromOldToNew);
+
+    connectCreatedEntities(allGeneratorsInHierarcicalVD_Input,
+                           allFacesInHierarcicalVD_Input,
+                           allEdgesInHierarcicalVD_Input,
+                           allVerticesInHierarcicalVD_Input,
+                           VDMapFromOldToNew,
+                           generatorMapFromOldToNew,
+                           faceMapFromOldToNew,
+                           edgeMapFromOldToNew,
+                           vertexMapFromOldToNew);
+}
+
+
+
+void VoronoiDiagramCIC::getAllVEntities(
+    const VoronoiDiagramCIC& VD_CIC, 
+    list<VoronoiDiagramCIC*>& allVDs_Input, 
+    list<Generator2D*>& allGeneratorsInHierarcicalVD_Input, 
+    list<VFace2D*>& allFacesInHierarcicalVD_Input, 
+    list<VEdge2D*>& allEdgesInHierarcicalVD_Input, 
+    list<VVertex2D*>& allVerticesInHierarcicalVD_Input) const
+{
+	VD_CIC.getAllVoronoiDiagrams_hierarchy(allVDs_Input);
+	VD_CIC.getAllGenerators_hierarchy(allGeneratorsInHierarcicalVD_Input);
+	VD_CIC.getAllFaces_hierarchy(allFacesInHierarcicalVD_Input);
+	VD_CIC.getAllEdges_hierarchy(allEdgesInHierarcicalVD_Input);
+	VD_CIC.getAllVertices_hierarchy(allVerticesInHierarcicalVD_Input);
+}
+
+
+void VoronoiDiagramCIC::createNLinkVDsAndThoseEntities(
+    const list<VoronoiDiagramCIC*>& allVDs_Input, VoronoiDiagramCIC* outerMostVD, 
+    const list<Generator2D*>& allGeneratorsInHierarcicalVD_Input, 
+    const list<VFace2D*>& allFacesInHierarcicalVD_Input, 
+    const list<VEdge2D*>& allEdgesInHierarcicalVD_Input, 
+    const list<VVertex2D*>& allVerticesInHierarcicalVD_Input, 
+    unordered_map<VoronoiDiagramCIC*, VoronoiDiagramCIC*>& VDMapFromOldToNew, 
+    unordered_map<Generator2D*, Generator2D*>& generatorMapFromOldToNew, 
+    unordered_map<VFace2D*, VFace2D*>& faceMapFromOldToNew, 
+    unordered_map<VEdge2D*, VEdge2D*>& edgeMapFromOldToNew, 
+    unordered_map<VVertex2D*, VVertex2D*>& vertexMapFromOldToNew) const
+{
+    createNLinkVoronoiDiagrams(allVDs_Input, outerMostVD, VDMapFromOldToNew);
+    createNLinkGenerators(allGeneratorsInHierarcicalVD_Input, generatorMapFromOldToNew);
+    createNLinkFaces(allFacesInHierarcicalVD_Input, faceMapFromOldToNew);
+    createNLinkEdges(allEdgesInHierarcicalVD_Input, edgeMapFromOldToNew);
+    createNLinkVertices(allVerticesInHierarcicalVD_Input, vertexMapFromOldToNew);
+}
+
+
+
+void VoronoiDiagramCIC::clear()
+{
+    if (m_containerGenerator != NULL)
+    {
+        delete m_containerGenerator; // it propagates clearing all the V-entities.
+    }
+}
+
+void VoronoiDiagramCIC::clear_except_current_container()
+{
+    m_disks.clear();
+    m_container.setCircle(rg_Circle2D(0.0, 0.0, 0.0));
+
+    VoronoiDiagram2DC::clear();
+}
+
+//SH
+Generator2D* VoronoiDiagramCIC::insertDiskIntoVD(const rg_Circle2D& disk)
+{
+    m_disks.push_back(disk);
+    if (!isThisDiskInContainer(disk))
+    {
+        expandRadiusOfContainer(disk);
+        increaseRadiusOfContainer(m_containerGenerator);
+    }
+
+    
+    Generator2D* newGenerator = VoronoiDiagram2DC::insertDiskIntoVD(disk);
+    m_containerGenerator->addOneInnerGen( newGenerator );
+    return newGenerator;
+}
+
+
+Generator2D* VoronoiDiagramCIC::insertDiskIntoVD(pair< rg_Circle2D, void* >& diskNUserDataPair)
+{
+    rg_Circle2D disk = diskNUserDataPair.first;
+    m_disks.push_back(disk);
+    if (!isThisDiskInContainer(disk))
+    {
+        expandRadiusOfContainer(disk);
+        increaseRadiusOfContainer(m_containerGenerator);
+    }
+
+    Generator2D* newGenerator = VoronoiDiagram2DC::insertDiskIntoVD(disk);
+    m_containerGenerator->addOneInnerGen(newGenerator);
+    return newGenerator;
+}
+
+
+Generator2D* VoronoiDiagramCIC::insertDiskIntoVD(const rg_Triplet< rg_Circle2D, int, void* >& diskAndIDAndUserData)
+{
+    rg_Circle2D disk = diskAndIDAndUserData.m_first;
+    m_disks.push_back(disk);
+    if (!isThisDiskInContainer(disk))
+    {
+        expandRadiusOfContainer(disk);
+        increaseRadiusOfContainer(m_containerGenerator);
+    }
+
+    Generator2D* newGenerator = VoronoiDiagram2DC::insertDiskIntoVD(disk);
+    m_containerGenerator->addOneInnerGen(newGenerator);
+    return newGenerator;
+}
+
+
+bool VoronoiDiagramCIC::isThisDiskInContainer(const rg_Circle2D& disk)
+{
+    // double disk_radius = disk.getRadius();
+    rg_Circle2D containerDisk = m_containerGenerator->getDisk();
+    return containerDisk.contain(disk);
+}
+
+void VoronoiDiagramCIC::expandRadiusOfContainer(const rg_Circle2D& disk)
+{
+    rg_Circle2D containerDisk = m_containerGenerator->getDisk();
+    double distance_btw_container_and_this_disk = containerDisk.getCenterPt().distance(disk.getCenterPt());
+    double expand_radius = (distance_btw_container_and_this_disk + disk.getRadius()) * 2;
+    containerDisk.setRadius(expand_radius);
+    m_containerGenerator->setDisk(containerDisk);
+}
+//SH
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC(list<rg_Circle2D>& circleset)
+{
+    //createGenerators( circleset );
+    createGenerators_DoublePrecision(circleset);
+
+
+    if (IS_BUCKET_USED) {
+        list<Generator2D*> generatorSetForBucket = m_generators;
+        generatorSetForBucket.pop_front();
+        m_bucket.setBucketCell(generatorSetForBucket);
+    }
+
+    constructVoronoiDiagramCIC_TOI_Method();
+
+}
+
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC(list< pair< rg_Circle2D, void* > >& circleNUserDataPairSet)
+{
+    //createGenerators( circleNUserDataPairSet );
+
+    createGenerators_DoublePrecision(circleNUserDataPairSet);
+
+    if (IS_BUCKET_USED) {
+        list<Generator2D*> generatorSetForBucket = m_generators;
+        generatorSetForBucket.pop_front();
+        m_bucket.setBucketCell(generatorSetForBucket);
+    }
+
+    constructVoronoiDiagramCIC_TOI_Method();
+}
+
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC(list< rg_Triplet<rg_Circle2D, int, void*> >& circleAndIDAndUserDataSet)
+{
+    //createGenerators( circleAndIDAndUserDataSet );
+    // test
+    createGenerators_DoublePrecision(circleAndIDAndUserDataSet);
+
+    if (IS_BUCKET_USED) {
+        list<Generator2D*> generatorSetForBucket = m_generators;
+        generatorSetForBucket.pop_front();
+        m_bucket.setBucketCell(generatorSetForBucket);
+    }
+
+    constructVoronoiDiagramCIC_TOI_Method();
+}
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC_noContainerInInput(list<rg_Circle2D>& circleset_without_container)
+{
+    // compute container
+    rg_BoundingBox2D boundingBox;
+    for (list<rg_Circle2D>::iterator i_disk = circleset_without_container.begin(); i_disk != circleset_without_container.end(); ++i_disk) {
+        rg_Circle2D disk = *i_disk;
+        boundingBox.updateBoxByAddingCircle(disk);
+    }
+
+
+    rg_Point2D center = boundingBox.getCenterPt();
+    double longestLength = boundingBox.evaluateLongestLength();
+    double scaleForContainerRadius = 5.0;
+    double radius = longestLength * scaleForContainerRadius;
+    rg_Circle2D circularContainer(center, radius);
+
+    // MAKE ANOTHER CIRCLE LIST FOR VDCIC (NOTE:::or add container into input circle list)
+    list<rg_Circle2D> circleListForVDCIC = circleset_without_container;
+    circleListForVDCIC.push_front(circularContainer);
+
+    constructVoronoiDiagramCIC(circleListForVDCIC);
+}
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC(list<Generator2D*>& generators)
+{
+}
+
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC(Generator2D* universeGenerator)
+{
+    list<Generator2D*> generators;
+    universeGenerator->getInnerGens(generators);
+    generators.push_front(universeGenerator);
+
+    m_containerGenerator = universeGenerator;
+    m_generators = generators;
+
+    if (IS_BUCKET_USED) {
+        list<Generator2D*> generatorSetForBucket = m_generators;
+        generatorSetForBucket.pop_front();
+        m_bucket.setBucketCell(generatorSetForBucket);
+    }
+
+    constructVoronoiDiagramCIC_TOI_Method();
+}
+
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC_hierarchy(list<rg_Circle2D>& hierarchicalDisks)
+{
+    createGenerators_hierarchy(hierarchicalDisks);
+
+    list<Generator2D*> containers;
+    collectContainerGenerators(containers);
+
+    for (list<Generator2D*>::iterator i_con = containers.begin(); i_con != containers.end(); ++i_con) {
+        Generator2D* currContainer = *i_con;
+        if (currContainer == m_containerGenerator) {
+            currContainer->setInnerVoronoiDiagram(this);
+            constructVoronoiDiagramCIC(currContainer);
+        }
+        else {
+            VoronoiDiagramCIC* innerVD = new VoronoiDiagramCIC();
+            currContainer->setInnerVoronoiDiagram(innerVD);
+            innerVD->constructVoronoiDiagramCIC(currContainer);
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC_hierarchy(list<pair<rg_Circle2D, void*>>& hierarchicalDisks)
+{
+    createGenerators_hierarchy(hierarchicalDisks);
+
+    list<Generator2D*> containers;
+    collectContainerGenerators(containers);
+
+    for (list<Generator2D*>::iterator i_con = containers.begin(); i_con != containers.end(); ++i_con) {
+        Generator2D* currContainer = *i_con;
+        if (currContainer == m_containerGenerator) {
+            currContainer->setInnerVoronoiDiagram(this);
+            constructVoronoiDiagramCIC(currContainer);
+        }
+        else {
+            VoronoiDiagramCIC* innerVD = new VoronoiDiagramCIC();
+            currContainer->setInnerVoronoiDiagram(innerVD);
+            innerVD->constructVoronoiDiagramCIC(currContainer);
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createNLinkVoronoiDiagrams(
+    const list<VoronoiDiagramCIC*>& allVDs, 
+    VoronoiDiagramCIC* outerMostVD, 
+    unordered_map<VoronoiDiagramCIC*, VoronoiDiagramCIC*>& VDMapFromOldToNew) const
+{
+	for (list<VoronoiDiagramCIC*>::const_iterator i_VD = allVDs.begin(); i_VD != allVDs.end(); ++i_VD)
+	{
+        VoronoiDiagramCIC* currVD = *i_VD;
+        VoronoiDiagramCIC* newVD  = NULL;
+        if (currVD != outerMostVD)
+        {
+			newVD = new VoronoiDiagramCIC;
+        }
+        else
+        {
+            newVD = const_cast<VoronoiDiagramCIC*>(this);
+        }
+
+        newVD->copyTopologyUnrelatedObjects(*currVD);
+        VDMapFromOldToNew.insert(pair<VoronoiDiagramCIC*, VoronoiDiagramCIC*>(currVD, newVD));
+	}
+    VDMapFromOldToNew.insert(pair<VoronoiDiagramCIC*, VoronoiDiagramCIC*>(NULL, NULL));
+}
+
+
+void VoronoiDiagramCIC::copyTopologyUnrelatedObjects(const VoronoiDiagramCIC& VD_CIC)
+{
+    VoronoiDiagram2DC::copyTopologyUnrelatedObjects(VD_CIC);
+    m_container          = VD_CIC.m_container;
+    m_disks              = VD_CIC.m_disks;
+}
+
+
+void VoronoiDiagramCIC::insertCreatedEntitiesToVDs(
+    const list<VoronoiDiagramCIC*>& allVDs_Input, 
+    const unordered_map<VoronoiDiagramCIC*, VoronoiDiagramCIC*>& VDMapFromOldToNew, 
+    const unordered_map<Generator2D*, Generator2D*>& generatorMapFromOldToNew, 
+    const unordered_map<VFace2D*, VFace2D*>& faceMapFromOldToNew, 
+    const unordered_map<VEdge2D*, VEdge2D*>& edgeMapFromOldToNew, 
+    const unordered_map<VVertex2D*, VVertex2D*>& vertexMapFromOldToNew)
+{
+    for(list<VoronoiDiagramCIC*>::const_iterator i_InputVD = allVDs_Input.begin(); 
+        i_InputVD != allVDs_Input.end();
+        ++i_InputVD)
+    {
+        VoronoiDiagramCIC* currInputVD   = *i_InputVD;
+        VoronoiDiagramCIC* currCREATED_VD = VDMapFromOldToNew.at(currInputVD);
+
+        list<Generator2D*> allGeneratorsOfInputVD;
+        currInputVD->get_generators(allGeneratorsOfInputVD);
+        currCREATED_VD->insertCreatedGenerators(allGeneratorsOfInputVD, generatorMapFromOldToNew);
+
+		list<VFace2D*> allFacesOfInputVD;
+		currInputVD->getVoronoiFaces(allFacesOfInputVD);
+        currCREATED_VD->insertCreatedFaces(allFacesOfInputVD, faceMapFromOldToNew);
+
+		list<VEdge2D*> allEdgesOfInputVD;
+		currInputVD->getVoronoiEdges(allEdgesOfInputVD);
+		currCREATED_VD->insertCreatedEdges(allEdgesOfInputVD, edgeMapFromOldToNew);
+
+		list<VVertex2D*> allVerticesOfInputVD;
+		currInputVD->getVoronoiVertices(allVerticesOfInputVD);
+		currCREATED_VD->insertCreatedVertices(allVerticesOfInputVD, vertexMapFromOldToNew);
+
+        currCREATED_VD->setContainerGenerator(generatorMapFromOldToNew.at(const_cast<Generator2D*>(currInputVD->getContainerGenerator())));
+    }
+}
+
+
+void VoronoiDiagramCIC::connectCreatedEntities(
+    const list<Generator2D*>& allGeneratorsInHierarcicalVD_Input, 
+    const list<VFace2D*>&     allFacesInHierarcicalVD_Input, 
+    const list<VEdge2D*>&     allEdgesInHierarcicalVD_Input,
+    const list<VVertex2D*>&   allVerticesInHierarcicalVD_Input, 
+    const unordered_map<VoronoiDiagramCIC*, VoronoiDiagramCIC*>& VDMapFromOldToNew, 
+    const unordered_map<Generator2D*, Generator2D*>& generatorMapFromOldToNew, 
+    const unordered_map<VFace2D*, VFace2D*>& faceMapFromOldToNew, 
+    const unordered_map<VEdge2D*, VEdge2D*>& edgeMapFromOldToNew, 
+    const unordered_map<VVertex2D*, VVertex2D*>& vertexMapFromOldToNew) const
+{
+    connectCreatedEntitiesInGenerators(allGeneratorsInHierarcicalVD_Input, VDMapFromOldToNew, generatorMapFromOldToNew, faceMapFromOldToNew);
+    connectCreatedEntitiesInFaces(allFacesInHierarcicalVD_Input, generatorMapFromOldToNew, faceMapFromOldToNew, edgeMapFromOldToNew);
+    connectCreatedEntitiesInEdges(allEdgesInHierarcicalVD_Input, faceMapFromOldToNew, edgeMapFromOldToNew, vertexMapFromOldToNew);
+    connectCreatedEntitiesInVertices(allVerticesInHierarcicalVD_Input, edgeMapFromOldToNew, vertexMapFromOldToNew);
+}
+
+
+void VoronoiDiagramCIC::connectCreatedEntitiesInGenerators(
+    const list<Generator2D*>& allGeneratorsInHierarcicalVD_Input, 
+    const unordered_map<VoronoiDiagramCIC*, VoronoiDiagramCIC*>& VDMapFromOldToNew, 
+    const unordered_map<Generator2D*, Generator2D*>& generatorMapFromOldToNew, 
+    const unordered_map<VFace2D*, VFace2D*>& faceMapFromOldToNew) const
+{
+	for (list<Generator2D*>::const_iterator i_gen = allGeneratorsInHierarcicalVD_Input.begin(); 
+         i_gen != allGeneratorsInHierarcicalVD_Input.end(); 
+        ++i_gen)
+	{
+		Generator2D* currGenOfInput     = *i_gen;
+        Generator2D* currGenOfCREATED   = generatorMapFromOldToNew.at(currGenOfInput);
+
+        currGenOfCREATED->setInnerFace(faceMapFromOldToNew.at(currGenOfInput->getInnerFace()));
+		currGenOfCREATED->setOuterFace(faceMapFromOldToNew.at(currGenOfInput->getOuterFace()));
+        currGenOfCREATED->setInnerVoronoiDiagram(VDMapFromOldToNew.at(currGenOfInput->getInnerVD()));
+        
+        list<Generator2D*> innerGeneratorsOfInput;
+        currGenOfInput->getInnerGens(innerGeneratorsOfInput);
+        currGenOfCREATED->clearInnerGen();
+        for (list<Generator2D*>::const_iterator i_innerGen = innerGeneratorsOfInput.begin();
+             i_innerGen != innerGeneratorsOfInput.end();
+             ++i_innerGen)
+        {
+            Generator2D* currInnerGenerator = *i_innerGen;
+            currGenOfCREATED->addOneInnerGen(generatorMapFromOldToNew.at(currInnerGenerator));
+        }
+	}
+}
+
+
+void VoronoiDiagramCIC::constructVoronoiDiagramCIC_TOI_Method()
+{
+    constructSeedVoronoiDiagram();
+
+    list<Generator2D*>::iterator i_gen = m_generators.begin();
+    ++i_gen;
+    ++i_gen;
+    ++i_gen; // ignore container and first two generators which are used for construction of seed Voronoi diagram.
+
+    for (; i_gen != m_generators.end(); ++i_gen) {
+        Generator2D* currDisk = *i_gen;
+        updateVoronoiDiagramCIC_TOI_Method(currDisk);
+
+        if (IS_BUCKET_USED) {
+            m_bucket.addGenerator(currDisk);
+        }
+    }
+
+    removeAllExtraneousVVerticesAndVEdges();
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators(list<rg_Circle2D>& circleset)
+{
+    //circleset.sort(compareCircleDescendingorder);
+    m_generators.clear();
+
+    list<rg_Circle2D>::iterator i_circle = circleset.begin();
+    rg_Circle2D container = *i_circle;
+    float xCoord = container.getCenterPt().getX();
+    float yCoord = container.getCenterPt().getY();
+    float radius = container.getRadius();
+
+    m_container = rg_Circle2D(xCoord, yCoord, radius);
+    Generator2D* containerGen = createGenerator();
+    containerGen->setID(-1);
+    containerGen->setDisk(m_container);
+
+    m_containerGenerator = containerGen;
+    m_containerGenerator->setInnerVoronoiDiagram(this);
+
+    ++i_circle;
+
+
+    int currID = 1;
+    for (; i_circle != circleset.end(); ++i_circle, ++currID) {
+        rg_Circle2D currDisk = *i_circle;
+        float xCoord = currDisk.getCenterPt().getX();
+        float yCoord = currDisk.getCenterPt().getY();
+        float radius = currDisk.getRadius();
+
+        rg_Circle2D currDisk_single_precision(xCoord, yCoord, radius);
+        m_disks.push_back(currDisk_single_precision);
+        Generator2D* newGen = createGenerator();
+        newGen->setID(currID);
+        newGen->setDisk(currDisk_single_precision);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators(list< pair< rg_Circle2D, void* > >& circleNUserDataPairSet)
+{
+    //circleset.sort(compareCircleDescendingorder);
+    m_generators.clear();
+
+    list< pair< rg_Circle2D, void* > >::iterator i_circle = circleNUserDataPairSet.begin();
+    pair< rg_Circle2D, void* > currPair = *i_circle++;
+
+    rg_Circle2D container = currPair.first;
+    float xCoord = container.getCenterPt().getX();
+    float yCoord = container.getCenterPt().getY();
+    float radius = container.getRadius();
+
+    m_container = rg_Circle2D(xCoord, yCoord, radius);
+    Generator2D* containerGen = createGenerator();
+    containerGen->setID(-1);
+    containerGen->setDisk(m_container);
+    containerGen->setUserData(currPair.second);
+
+    m_containerGenerator = containerGen;
+    m_containerGenerator->setInnerVoronoiDiagram(this);
+
+    int currID = 1;
+    for (; i_circle != circleNUserDataPairSet.end(); ++i_circle, ++currID) {
+        currPair = *i_circle;
+        rg_Circle2D currDisk = currPair.first;
+        xCoord = currDisk.getCenterPt().getX();
+        yCoord = currDisk.getCenterPt().getY();
+        radius = currDisk.getRadius();
+
+        rg_Circle2D currDisk_single_precision(xCoord, yCoord, radius);
+        m_disks.push_back(currDisk_single_precision);
+        Generator2D* newGen = createGenerator();
+        newGen->setID(currID);
+        newGen->setDisk(currDisk_single_precision);
+        newGen->setUserData(currPair.second);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators(list< rg_Triplet<rg_Circle2D, int, void*> >& circleAndIDAndUserDataSet)
+{
+    m_generators.clear();
+
+    list< rg_Triplet<rg_Circle2D, int, void*> >::iterator i_circle = circleAndIDAndUserDataSet.begin();
+    rg_Triplet<rg_Circle2D, int, void*> currTriplet = *i_circle++;
+
+    rg_Circle2D container = currTriplet.m_first;
+    float xCoord = container.getCenterPt().getX();
+    float yCoord = container.getCenterPt().getY();
+    float radius = container.getRadius();
+
+    m_container = rg_Circle2D(xCoord, yCoord, radius);
+
+
+
+    Generator2D* containerGen = createGenerator();
+    containerGen->setID(-1);
+    containerGen->setDisk(m_container);
+    containerGen->setUserData(currTriplet.m_third);
+    m_containerGenerator = containerGen;
+    m_containerGenerator->setInnerVoronoiDiagram(this);
+
+    int currID = 1;
+    for (; i_circle != circleAndIDAndUserDataSet.end(); ++i_circle, ++currID) {
+        currTriplet = *i_circle;
+
+        rg_Circle2D currDisk = currTriplet.m_first;
+        xCoord = currDisk.getCenterPt().getX();
+        yCoord = currDisk.getCenterPt().getY();
+        radius = currDisk.getRadius();
+
+        rg_Circle2D currDisk_single_precision(xCoord, yCoord, radius);
+        m_disks.push_back(currDisk_single_precision);
+
+        Generator2D* newGen = createGenerator();
+        newGen->setID(currTriplet.m_second);
+        newGen->setDisk(currDisk_single_precision);
+        newGen->setUserData(currTriplet.m_third);
+
+        // by Joonghyun on December 16, 2017
+        //m_disks.push_back(currDisk);
+        //m_generators.push_back( Generator2D( currTriplet.m_second, currDisk, currTriplet.m_third ) );
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators_DoublePrecision(list< rg_Triplet<rg_Circle2D, int, void*> >& circleAndIDAndUserDataSet)
+{
+    m_generators.clear();
+
+    list< rg_Triplet<rg_Circle2D, int, void*> >::iterator i_circle = circleAndIDAndUserDataSet.begin();
+    rg_Triplet<rg_Circle2D, int, void*> currTriplet = *i_circle++;
+
+    m_container = currTriplet.m_first;
+    Generator2D* containerGen = createGenerator();
+    containerGen->setID(-1);
+    containerGen->setDisk(m_container);
+    containerGen->setUserData(currTriplet.m_third);
+    m_containerGenerator = containerGen;
+    m_containerGenerator->setInnerVoronoiDiagram(this);
+
+
+    int currID = 1;
+    for (; i_circle != circleAndIDAndUserDataSet.end(); ++i_circle, ++currID) {
+        currTriplet = *i_circle;
+
+        m_disks.push_back(currTriplet.m_first);
+        Generator2D* newGen = createGenerator();
+        newGen->setID(currTriplet.m_second);
+        newGen->setDisk(currTriplet.m_first);
+        newGen->setUserData(currTriplet.m_third);
+        containerGen->addOneInnerGen(newGen);
+	}
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators_hierarchy(list< pair< rg_Circle2D, void* > >& hierarchicalDisks)
+{
+    // disk를 작은것부터 큰 순서로 sorting 을 미리 해두자
+    // detect disks whether container or contained or both by double for.
+    // make map< CircleForDrawing*, list<CircleForDrawing*> > containers.
+    // if disk_a is contained in disk_b, and disk_b is not in upward map,
+    // then, insert pair< disk_b, list<CircleForDrawing*> >, and insert
+    // disk_b and disk_a into upward list.getEntity, and m_numCIC++;
+    // after all, collect CircleForDrawing objects not contained in any disk.
+
+
+    // sort input circles in ascending order
+    hierarchicalDisks.sort(compareCirclePairAscendingOrder);
+
+    // create sorted generators in ascending order.
+    bool b_use_single_precision = true;
+
+    list<Generator2D*> sortedGenerators;
+    for (list< pair< rg_Circle2D, void* > >::iterator i_diskPair = hierarchicalDisks.begin(); i_diskPair != hierarchicalDisks.end(); ++i_diskPair) {
+        Generator2D* newGen = new Generator2D();
+        rg_Circle2D  currDisk;
+
+        if (b_use_single_precision) {
+            float x = i_diskPair->first.getCenterPt().getX();
+            float y = i_diskPair->first.getCenterPt().getY();
+            float r = i_diskPair->first.getRadius();
+            currDisk.setCircle(rg_Point2D(x, y), r);
+        }
+        else {
+            currDisk = i_diskPair->first;
+        }
+
+        newGen->setDisk(currDisk);
+        newGen->setUserData(i_diskPair->second);
+        sortedGenerators.push_back(newGen);
+    }
+
+    m_containerGenerator = sortedGenerators.back();
+
+    // make hierarchy between generators.
+    for (list<Generator2D*>::iterator i_firstGen = sortedGenerators.begin(); i_firstGen != sortedGenerators.end(); ++i_firstGen)
+    {
+        Generator2D* firstGen = *i_firstGen;
+        rg_Circle2D  firstDisk = firstGen->getDisk();
+
+        list<Generator2D*>::iterator i_secondGen = i_firstGen;
+        ++i_secondGen;
+        for (; i_secondGen != sortedGenerators.end(); ++i_secondGen) {
+            Generator2D* secondGen = *i_secondGen;
+            rg_Circle2D  secondDisk = secondGen->getDisk();
+            double       distBetweenCenters = firstDisk.getCenterPt().distance(secondDisk.getCenterPt());
+
+            if (rg_GT((secondDisk.getRadius() - firstDisk.getRadius()), distBetweenCenters)) {
+                secondGen->addOneInnerGen(firstGen);
+                break;
+            }
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators_hierarchy(list< rg_Circle2D >& hierarchicalDisks)
+{
+    // sort input circles in ascending order
+    hierarchicalDisks.sort(compareCircleAscendingOrder);
+
+    // create sorted generators in ascending order.
+    bool b_use_single_precision = true;
+
+    list<Generator2D*> sortedGenerators;
+    for (list<rg_Circle2D>::iterator i_disk = hierarchicalDisks.begin(); i_disk != hierarchicalDisks.end(); ++i_disk) {
+        Generator2D* newGen = new Generator2D();
+        rg_Circle2D  currDisk = *i_disk;
+
+        if (b_use_single_precision) {
+            float x = currDisk.getCenterPt().getX();
+            float y = currDisk.getCenterPt().getY();
+            float r = currDisk.getRadius();
+            currDisk.setCircle(rg_Point2D(x, y), r);
+        }
+
+        newGen->setDisk(currDisk);
+        sortedGenerators.push_back(newGen);
+    }
+
+    m_containerGenerator = sortedGenerators.back();
+
+    // make hierarchy between generators.
+    for (list<Generator2D*>::iterator i_firstGen = sortedGenerators.begin(); i_firstGen != sortedGenerators.end(); ++i_firstGen)
+    {
+        Generator2D* firstGen = *i_firstGen;
+        rg_Circle2D  firstDisk = firstGen->getDisk();
+
+        list<Generator2D*>::iterator i_secondGen = i_firstGen;
+        ++i_secondGen;
+        for (; i_secondGen != sortedGenerators.end(); ++i_secondGen) {
+            Generator2D* secondGen = *i_secondGen;
+            rg_Circle2D  secondDisk = secondGen->getDisk();
+            double       distBetweenCenters = firstDisk.getCenterPt().distance(secondDisk.getCenterPt());
+
+            if (rg_GT((secondDisk.getRadius() - firstDisk.getRadius()), distBetweenCenters)) {
+                secondGen->addOneInnerGen(firstGen);
+                break;
+            }
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::collectContainerGenerators( list<Generator2D*>& containers ) const
+{
+    if (m_containerGenerator == NULL) {
+        return;
+    }
+
+    list<Generator2D*> allGenerators;
+    getAllGenerators_hierarchy(allGenerators);
+
+    for (list<Generator2D*>::iterator i_gen = allGenerators.begin(); i_gen != allGenerators.end(); ++i_gen) {
+        Generator2D* currGen = *i_gen;
+
+        list<Generator2D*> innerGens;
+        currGen->getInnerGens(innerGens);
+
+        if (innerGens.size() > 1) {
+            containers.push_back(currGen);
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators_DoublePrecision(list<rg_Circle2D>& circleset)
+{
+    //circleset.sort(compareCircleDescendingorder);
+    m_generators.clear();
+
+    list<rg_Circle2D>::iterator i_circle = circleset.begin();
+    rg_Circle2D currDisk = *i_circle++;
+
+    m_container = currDisk;
+    Generator2D* containerGen = createGenerator();
+    containerGen->setID(-1);
+    containerGen->setDisk(m_container);
+    m_containerGenerator = containerGen;
+    m_containerGenerator->setInnerVoronoiDiagram(this);
+
+
+    int currID = 1;
+    for (; i_circle != circleset.end(); ++i_circle, ++currID) {
+        currDisk = *i_circle;
+
+        m_disks.push_back(currDisk);
+        Generator2D* newGen = createGenerator();
+        newGen->setID( currID );
+        newGen->setDisk( currDisk );
+        containerGen->addOneInnerGen(newGen);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::createGenerators_DoublePrecision(list< pair< rg_Circle2D, void* > >& circleNUserDataPairSet)
+{
+    //circleset.sort(compareCircleDescendingorder);
+    m_generators.clear();
+
+    list< pair< rg_Circle2D, void* > >::iterator i_circle = circleNUserDataPairSet.begin();
+    pair< rg_Circle2D, void* > currPair = *i_circle++;
+
+    m_container = currPair.first;
+    Generator2D* containerGen = createGenerator();
+    containerGen->setID(-1);
+    containerGen->setDisk(m_container);
+    containerGen->setUserData(currPair.second);
+    m_containerGenerator = containerGen;
+    m_containerGenerator->setInnerVoronoiDiagram(this);
+
+
+    int currID = 1;
+    for (; i_circle != circleNUserDataPairSet.end(); ++i_circle, ++currID) {
+        currPair = *i_circle;
+        rg_Circle2D currDisk = currPair.first;
+
+        m_disks.push_back(currDisk);
+        Generator2D* newGen = createGenerator();
+        newGen->setID( currID );
+        newGen->setDisk( currDisk );
+        newGen->setUserData( currPair.second );
+        containerGen->addOneInnerGen(newGen);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::constructSeedVoronoiDiagram()
+{
+    list<Generator2D*>::iterator i_gen = m_generators.begin();
+    Generator2D* enclosingCircle = *i_gen++;
+    Generator2D* disk1 = *i_gen++;
+    Generator2D* disk2 = *i_gen;
+
+    VVertex2D* v0 = createVertex(0);
+    VVertex2D* v1 = createVertex(1);
+
+    VEdge2D* e0 = createEdge(0);
+    VEdge2D* e1 = createEdge(1);
+    VEdge2D* e2 = createEdge(2);
+
+    VFace2D* f_ = createFace(-1); // face of enclosing circle
+    VFace2D* f0 = createFace(0);
+    VFace2D* f1 = createFace(1);
+
+    v0->setFirstVEdge(e0);
+    v1->setFirstVEdge(e0);
+
+    e0->setTopology(v0, v1, f0, f1, e1, e2, e1, e2);
+    e1->setTopology(v1, v0, f0, f_, e0, e2, e0, e2);
+    e2->setTopology(v0, v1, f1, f_, e0, e1, e0, e1);
+
+    f_->setFirstVEdge(e1);
+    f_->setGenerator(enclosingCircle);
+    f0->setFirstVEdge(e0);
+    f0->setGenerator(disk1);
+    f1->setFirstVEdge(e0);
+    f1->setGenerator(disk2);
+
+    //enclosingCircle->setOuterFace( f_ );
+    enclosingCircle->setInnerFace(f_);
+    disk1->setOuterFace(f0);
+    disk2->setOuterFace(f1);
+
+    updateCircumcircle(v0);
+    updateCircumcircle(v1);
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    updateTangentCircleForContactMap(e0);
+    updateTangentCircleForContactMap(e1);
+    updateTangentCircleForContactMap(e2);
+
+    if (IS_BUCKET_USED) {
+        //m_bucket.addGenerator(enclosingCircle);
+        m_bucket.addGenerator(disk1);
+        m_bucket.addGenerator(disk2);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::updateVoronoiDiagram_insertion(Generator2D* const generator)
+{
+    updateVoronoiDiagramCIC_TOI_Method(generator);
+
+    removeAllExtraneousVVerticesAndVEdges();
+}
+
+
+
+void VoronoiDiagramCIC::deleteContainer_1f()
+{
+    if (m_containerGenerator == nullptr) {
+        return;
+    }
+    // VFace2D* virtualFace = m_containerGenerator->getInnerFace();
+    // virtualFace->setGenerator(nullptr);
+    VFace2D* virtualFace = getVirtualFace();
+    virtualFace->setGenerator(nullptr);
+    m_generators.pop_front();
+
+    list<VEdge2D*> influencedEdges;
+    list<VEdge2D*> boundaryEdges;
+    list<VEdge2D*> quillEdges;
+    virtualFace->getBoundaryVEdges(boundaryEdges);
+    virtualFace->getQuillVEdges(quillEdges);
+    influencedEdges.insert(influencedEdges.end(), boundaryEdges.begin(), boundaryEdges.end());
+    influencedEdges.insert(influencedEdges.end(), quillEdges.begin(), quillEdges.end());
+
+    makeCorrectTopologyOfTheInterfaceByFlippingEdges(virtualFace);
+
+    assignCoordinateOfInfiniteVertices();
+
+    for (list<VEdge2D*>::iterator i_edge = influencedEdges.begin(); i_edge != influencedEdges.end(); ++i_edge) {
+        VEdge2D* currEdge = *i_edge;
+
+        if (currEdge->isInfinite()) {
+            continue;
+        }
+        updateEdge(currEdge);
+    }
+}
+
+
+void VoronoiDiagramCIC::updateVoronoiDiagram_insertion_addToGeneratorList(Generator2D* const generator, list<VEdge2D*>& newEdges, list<VEdge2D*>& removedEdges, list<VEdge2D*>& cuttedEdges)
+{
+    m_generators.push_back(generator);
+
+
+    Generator2D* closestGenerator = findClosestGeneratorToNewGenerator(generator);
+
+
+    list<VEdge2D*>   intersectingVEdges;
+    list<VVertex2D*> fictitiousVVertices;
+    findIntersectingVEdgesOfCurrVDAgainstNewVEdgeLoop_EdgeSplitPossible_influenced_removed_edge(generator, closestGenerator, intersectingVEdges, fictitiousVVertices, cuttedEdges, removedEdges);
+
+
+    list<VVertex2D*> newVVertices;
+    list<VEdge2D*>   newVEdges;
+    makeVEdgeLoopForNewGeneratorAndConnectToCurrVD(generator, intersectingVEdges, newVVertices, newVEdges);
+
+
+    connectCurrVDToNewVEdgeLoop(newVEdges);
+
+
+    mergeSplitVEdgesByFictitiousVVertex(fictitiousVVertices);
+
+
+    //computeCoordOfNewVVertices( newVVertices );
+    computeCoordOfNewVVertices(newVVertices);
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    updateTangentCircleForContactMap(newVEdges);
+
+
+    newEdges.insert(newEdges.end(), newVEdges.begin(), newVEdges.end());
+
+
+    VFace2D* newFace = generator->getOuterFace();
+    for (list<VEdge2D*>::iterator i_edge = newVEdges.begin(); i_edge != newVEdges.end(); ++i_edge) {
+        //newEdges.push_back( *i_edge );
+
+        if ((*i_edge)->getLeftFace() == newFace) {
+            cuttedEdges.push_back((*i_edge)->getRightHand());
+        }
+        else {
+            cuttedEdges.push_back((*i_edge)->getLeftLeg());
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::updateVoronoiDiagram_removal_deleteFromGeneratorList(Generator2D* const generator, list<VEdge2D*>& newEdges, list<VEdge2D*>& removedEdges, list<VEdge2D*>& influencedEdges)
+{
+    //added by cysong at July 08, 20
+    m_generators.remove(generator);
+
+
+    VFace2D* VFaceToBeRemoved = generator->getOuterFace();
+    list<VEdge2D*> boundingVEdges;
+    VFaceToBeRemoved->getBoundaryVEdges(boundingVEdges);
+
+    int numBoundingVEdges = boundingVEdges.size();
+
+    list<VEdge2D*> bounding_N_quill_edges;
+    bounding_N_quill_edges.insert(bounding_N_quill_edges.end(), boundingVEdges.begin(), boundingVEdges.end());
+    for (list<VEdge2D*>::iterator i_edge = boundingVEdges.begin(); i_edge != boundingVEdges.end(); ++i_edge) {
+        VEdge2D* currEdge = *i_edge;
+        VEdge2D* quillEdge = NULL;
+
+        if (currEdge->getLeftFace() == VFaceToBeRemoved) {
+            quillEdge = currEdge->getRightHand();
+        }
+        else {
+            quillEdge = currEdge->getLeftLeg();
+        }
+        bounding_N_quill_edges.push_back(quillEdge);
+    }
+
+
+    // VEdges to compute tangent circle for contact map by Joonghyun March, 17
+    list<VEdge2D*> VEdgesToRecomputeTangentCircle;
+
+    rg_dList< pair<VEdge2D*, rg_Circle2D> > possiblyFlippingEdges;
+    VEdge2D* mergedVEdge = NULL;
+
+    switch (numBoundingVEdges)
+    {
+    case 0: // error
+    case 1: // error
+        exit(1); // LOG COMMENT
+        break;
+
+
+    case 2: // anomaly
+        //AfxMessageBox(_T("Anomaly face removal attempted."));
+
+        removeVFaceBoundedByTwoVEdges(VFaceToBeRemoved, mergedVEdge);
+        newEdges.push_back(mergedVEdge);
+
+        break;
+
+
+    case 3:
+        removeVFaceBoundedByThreeVEdges(VFaceToBeRemoved);
+
+        break;
+
+
+    default:
+        // collect possibly flipped edges
+        collectPossiblyFlippingEdgesOnTheInterfaceForBoolean_StoredInPriorityQueue(VFaceToBeRemoved, possiblyFlippingEdges); //possiblyFlippingEdgesQ
+
+        bool		isThereVEdgesWithIdenticalDiskTriplet = false;
+        VEdge2D* firstVEdgeWithIdenticalDiskTriplet = rg_NULL;
+        VEdge2D* secondVEdgeWithIdenticalDiskTriplet = rg_NULL;
+
+        //pair<VEdge2D*, rg_Circle2D> edgeToDefineMinTangentCircle = dequeueRootNode_DiskTripletWithMinTangentCircle(possiblyFlippingEdges);
+        set<Generator2D*> allTrappedGenerators;
+
+        while (numBoundingVEdges > 3) {
+            //pair<VEdge2D*, rg_Circle2D> edgeToDefineMinTangentCircle = dequeueRootNode_DiskTripletWithMinTangentCircle(possiblyFlippingEdges);
+            pair<VEdge2D*, rg_Circle2D> edgeToDefineMinTangentCircle = dequeueRootNode_VEdgeWithCircumcircleFarFromGeneratorToBeRemoved(possiblyFlippingEdges, generator);
+
+
+            VEdge2D* prevQuillEdge_CCW = rg_NULL;
+            VEdge2D* nextQuillEdge_CCW = rg_NULL;
+            if (thereIsVEdgeWhichHasIdenticalDiskTripletBetweenAdjacentVEdgesOnBoundaryOfInputVFace(edgeToDefineMinTangentCircle.first, VFaceToBeRemoved, prevQuillEdge_CCW, nextQuillEdge_CCW)) {
+                //list<VEdge2D*>  trappingEdges;
+                //VFace2D*        trappingFace;
+                //findTrappingVEdges( VFaceToBeRemoved, trappingEdges, trappingFace );
+                //
+                //VEdge2D* trappingEdge1  = trappingEdges.front();
+                //VEdge2D* trappingEdge2  = trappingEdges.back();
+                //
+                //VEdge2D* prevQuillEdge_CCW = trappingEdge1;
+                //VEdge2D* nextQuillEdge_CCW = trappingEdge2;
+                //
+                //if ( (VoronoiDiagram2DC*)trappingFace->getGenerator()->getInnerVD() == this ) {
+                //    int numVEdgesPrevQuillEdgeToNextQuillEdge = 0;
+                //    int numVEdgesNextQuillEdgeToPrevQuillEdge = 0;
+                //
+                //    VEdge2D* nextEdge_CCW = getCCWNextEdgeOnFace(prevQuillEdge_CCW, VFaceToBeRemoved);
+                //    while ( nextEdge_CCW != nextQuillEdge_CCW ) {
+                //        ++numVEdgesPrevQuillEdgeToNextQuillEdge;
+                //        nextEdge_CCW = getCCWNextEdgeOnFace(nextEdge_CCW, VFaceToBeRemoved);
+                //    }
+                //
+                //    numVEdgesNextQuillEdgeToPrevQuillEdge = numBoundingVEdges - numVEdgesPrevQuillEdgeToNextQuillEdge - 2;
+                //
+                //    if ( numVEdgesNextQuillEdgeToPrevQuillEdge < numVEdgesPrevQuillEdgeToNextQuillEdge ) {
+                //        prevQuillEdge_CCW = trappingEdge2;
+                //        nextQuillEdge_CCW = trappingEdge1;
+                //    }
+                //}
+
+                set<Generator2D*> currTrappedGenerators;
+                VFace2D* trappingFace = getFaceOfOppositeSide(VFaceToBeRemoved, prevQuillEdge_CCW);
+                bool thisIsProperOrientationOfTrappingEdges = findTrappedGeneratorsAndEntities(VFaceToBeRemoved, trappingFace, prevQuillEdge_CCW, nextQuillEdge_CCW, currTrappedGenerators);
+
+                if (!thisIsProperOrientationOfTrappingEdges && trappingFace != m_VFaces.front()) {
+                    currTrappedGenerators.clear();
+                    VEdge2D* tempEdge = prevQuillEdge_CCW;
+                    prevQuillEdge_CCW = nextQuillEdge_CCW;
+                    nextQuillEdge_CCW = tempEdge;
+                    findTrappedGeneratorsAndEntities(VFaceToBeRemoved, trappingFace, prevQuillEdge_CCW, nextQuillEdge_CCW, currTrappedGenerators);
+                }
+
+                int numTrappedEdgeAmongBoundaryEdge = 0;
+                VEdge2D* nextEdge_CCW = getCCWNextEdgeOnFace(prevQuillEdge_CCW, VFaceToBeRemoved);
+                while (nextEdge_CCW != nextQuillEdge_CCW) {
+                    ++numTrappedEdgeAmongBoundaryEdge;
+                    nextEdge_CCW = getCCWNextEdgeOnFace(nextEdge_CCW, VFaceToBeRemoved);
+                }
+
+                numBoundingVEdges -= numTrappedEdgeAmongBoundaryEdge;
+
+                temporarilyRemoveTrappedGenerators(currTrappedGenerators);
+
+                allTrappedGenerators.insert(currTrappedGenerators.begin(), currTrappedGenerators.end());
+
+                VEdge2D* mergedVEdge = rg_NULL;
+                mergedVEdge = mergeTwoTrappingVEdges(prevQuillEdge_CCW, nextQuillEdge_CCW, VFaceToBeRemoved);
+
+                --numBoundingVEdges;
+
+                reflectMergedEdge(mergedVEdge, VFaceToBeRemoved, possiblyFlippingEdges);
+
+                // VEdges to compute tangent circle for contact map by Joonghyun March, 17
+                VEdgesToRecomputeTangentCircle.push_back(mergedVEdge);
+
+                continue;
+            }
+            else {
+                VEdge2D* edgeOfIncidentTriplet[2] = { NULL, NULL };
+                flipThisEdgeNFindTwoIncidentTriplets(VFaceToBeRemoved, edgeToDefineMinTangentCircle, edgeOfIncidentTriplet[0], edgeOfIncidentTriplet[1]);
+
+                // decrement the counter by one
+                --numBoundingVEdges;
+
+                for (int j = 0; j < 2; j++) {
+                    if (edgeOfIncidentTriplet[j]->isBounded()) {
+                        reflectTheFlipOnTheIncidentTriplet_deletion(possiblyFlippingEdges, edgeOfIncidentTriplet[j], VFaceToBeRemoved);
+                    }
+                }
+
+                // VEdges to compute tangent circle for contact map by Joonghyun March, 17
+                VEdgesToRecomputeTangentCircle.push_back(edgeToDefineMinTangentCircle.first);
+            }
+        }
+
+        if (numBoundingVEdges == 2) {
+            //VEdge2D* mergedVEdge = NULL;
+            removeVFaceBoundedByTwoVEdges(VFaceToBeRemoved, mergedVEdge);
+            newEdges.push_back(mergedVEdge);
+        }
+        else {
+            removeVFaceBoundedByThreeVEdges(VFaceToBeRemoved);
+        }
+
+        // insert temporarily removed generators into VD
+        set<Generator2D*>::iterator i_gen;
+        for (i_gen = allTrappedGenerators.begin(); i_gen != allTrappedGenerators.end(); ++i_gen) {
+            Generator2D* currGen = *i_gen;
+            updateVoronoiDiagramWithNewGenerator(currGen);
+        }
+
+        break;
+    }
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    updateTangentCircleForContactMap(VEdgesToRecomputeTangentCircle);
+
+    for (list<VEdge2D*>::iterator i_edge = bounding_N_quill_edges.begin(); i_edge != bounding_N_quill_edges.end(); ++i_edge) {
+        VEdge2D* currEdge = *i_edge;
+        if (currEdge->getStatus() == RED_E) {
+            removedEdges.push_back(currEdge);
+        }
+        else {
+            influencedEdges.push_back(currEdge);
+        }
+    }
+}
+
+
+
+void VoronoiDiagramCIC::getAllVertices_hierarchy(list<VVertex2D*>& vertices) const
+{
+    list<Generator2D*> allGenerators;
+    getAllGenerators_hierarchy(allGenerators);
+
+    for (list<Generator2D*>::iterator i_gen = allGenerators.begin(); i_gen != allGenerators.end(); ++i_gen) {
+        Generator2D* currGen = *i_gen;
+
+        if (currGen->getInnerVD() == NULL) {
+            continue;
+        }
+
+        list<VVertex2D*> currVertices;
+        currGen->getInnerVD()->getVoronoiVertices(currVertices);
+        vertices.insert(vertices.end(), currVertices.begin(), currVertices.end());
+    }
+}
+
+
+
+void VoronoiDiagramCIC::getAllEdges_hierarchy(list<VEdge2D*>& edges) const
+{
+    list<Generator2D*> allGenerators;
+    getAllGenerators_hierarchy(allGenerators);
+
+    for (list<Generator2D*>::iterator i_gen = allGenerators.begin(); i_gen != allGenerators.end(); ++i_gen) {
+        Generator2D* currGen = *i_gen;
+
+        if (currGen->getInnerVD() == NULL) {
+            continue;
+        }
+
+        list<VEdge2D*> currEdges;
+        currGen->getInnerVD()->getVoronoiEdges(currEdges);
+        edges.insert(edges.end(), currEdges.begin(), currEdges.end());
+    }
+}
+
+
+
+void VoronoiDiagramCIC::getAllFaces_hierarchy(list<VFace2D*>& faces) const
+{
+    list<Generator2D*> allGenerators;
+    getAllGenerators_hierarchy(allGenerators);
+
+    for (list<Generator2D*>::iterator i_gen = allGenerators.begin(); i_gen != allGenerators.end(); ++i_gen) {
+        Generator2D* currGen = *i_gen;
+
+        if (currGen->getInnerVD() == NULL) {
+            continue;
+        }
+
+        list<VFace2D*> currFace;
+        currGen->getInnerVD()->getVoronoiFaces(currFace);
+        faces.insert(faces.end(), currFace.begin(), currFace.end());
+    }
+}
+
+
+
+void VoronoiDiagramCIC::getAllGenerators_hierarchy(list<Generator2D*>& generators) const
+{
+    if (m_containerGenerator == NULL) {
+        return;
+    }
+
+    list<Generator2D*> generatorsToBeChecked;
+    generatorsToBeChecked.push_back(m_containerGenerator);
+
+    while (generatorsToBeChecked.size() > 0) {
+        Generator2D* currGen = generatorsToBeChecked.front();
+        generatorsToBeChecked.pop_front();
+        generators.push_back(currGen);
+
+        list<Generator2D*> innerGens;
+        currGen->getInnerGens(innerGens);
+
+        if (innerGens.size() == 1) {
+            continue;
+        }
+
+        generatorsToBeChecked.insert(generatorsToBeChecked.end(), innerGens.begin(), innerGens.end());
+    }
+}
+
+
+
+void VoronoiDiagramCIC::getAllVoronoiDiagrams_hierarchy(list<VoronoiDiagramCIC*>& VDs, const bool& includingThisVDItself /*= true*/) const
+{
+    list<Generator2D*> allContainerGenerators;
+    collectContainerGenerators(allContainerGenerators);
+
+    for (list<Generator2D*>::const_iterator i_container = allContainerGenerators.begin();
+        i_container != allContainerGenerators.end();
+        ++i_container)
+    {
+        Generator2D* currContainerGenerator = *i_container;
+
+        if (currContainerGenerator != getContainerGenerator())
+        {
+            VDs.push_back(currContainerGenerator->getInnerVD());
+        }
+        else
+        {
+            if (includingThisVDItself)
+            {
+                VDs.push_back(currContainerGenerator->getInnerVD());
+            }
+        }
+    }
+}
+
+
+
+void V::GeometryTier::VoronoiDiagramCIC::updateAllVEdges_hierarchy()
+{
+    list<VoronoiDiagramCIC*> VDs;
+    getAllVoronoiDiagrams_hierarchy(VDs);
+
+    for ( list<VoronoiDiagramCIC*>::iterator i_vd = VDs.begin(); i_vd != VDs.end(); ++i_vd ) {
+        VoronoiDiagramCIC* currVD = *i_vd;
+        currVD->updateGeometry();
+    }
+}
+
+
+
+void VoronoiDiagramCIC::nutcracking( Generator2D * NUT_generator ) // nutcracking
+{
+    if ( NUT_generator->getInnerVD() == NULL ) {
+        // generator를 포함하지 않는 호두인 경우 호두를 삭제하면 됨.
+        m_generators.remove(NUT_generator);
+        delete NUT_generator;
+    }
+    
+    // Initialize
+    // remove the skull of nut(i.e. galaxy).
+    // Universe VD and galaxy VD are not connected yet.
+    // From here 1
+    VoronoiDiagramCIC* innerVD = (VoronoiDiagramCIC*)(NUT_generator->getInnerVD());
+    m_generators.insert(m_generators.end(), innerVD->m_generators.begin(), innerVD->m_generators.end());
+    m_VFaces.insert(m_VFaces.end(), innerVD->m_VFaces.begin(), innerVD->m_VFaces.end());
+    m_VEdges.insert(m_VEdges.end(), innerVD->m_VEdges.begin(), innerVD->m_VEdges.end());
+    m_VVertices.insert(m_VVertices.end(), innerVD->m_VVertices.begin(), innerVD->m_VVertices.end());
+
+    innerVD->m_generators.clear();
+    innerVD->m_VFaces.clear();
+    innerVD->m_VEdges.clear();
+    innerVD->m_VVertices.clear();
+
+    delete innerVD;
+    // to here 1
+
+
+    // 호두까기에 관련된 disk들을 가져오는 작업
+    // 여기부터 2
+    // collect outer and inner boundary generators
+    // outer: universe side
+    // inner: galaxy side
+    list<Generator2D*> outerNeighborGeneratorsOfNutSkull;
+    list<Generator2D*> innerNeighborGeneratorsOfNutSkull;
+
+    list<VFace2D*> facesOfOuterNeighborGeneratorsONS;
+    list<VFace2D*> facesOfInnerNeighborGeneratorsONS; 
+    NUT_generator->getOuterFace()->getAdjacentVFaces(facesOfOuterNeighborGeneratorsONS);
+    NUT_generator->getInnerFace()->getAdjacentVFaces(facesOfInnerNeighborGeneratorsONS);
+
+    for ( list<VFace2D*>::iterator i_outFace = facesOfOuterNeighborGeneratorsONS.begin(); i_outFace != facesOfOuterNeighborGeneratorsONS.end(); ++i_outFace ) {
+        VFace2D* outerAdjFace = *i_outFace;
+        outerNeighborGeneratorsOfNutSkull.push_back(outerAdjFace->getGenerator());
+    }
+
+    for ( list<VFace2D*>::iterator i_inFace = facesOfInnerNeighborGeneratorsONS.begin(); i_inFace != facesOfInnerNeighborGeneratorsONS.end(); ++i_inFace ) {
+        VFace2D* innerAdjFace = *i_inFace;
+        innerNeighborGeneratorsOfNutSkull.push_back(innerAdjFace->getGenerator());
+    }
+    // 여기까지 2
+
+
+
+    // 호두껍데기 주변 disk들의 face를 키워서 호두까기를 하는 작업
+    // 여기부터 3
+    // face growing: 호두 껍데기를 없애면 주변 disk들의 face가 grow한다.
+    list<VEdge2D*> outerBoundaryEdges;
+    list<VEdge2D*> innerBoundaryEdges;
+
+    // 호두 껍데기 안팍의 face(2장) 각각의 boundary edge들을 가져온다.
+    NUT_generator->getOuterFace()->getBoundaryVEdges(outerBoundaryEdges);
+    NUT_generator->getInnerFace()->getBoundaryVEdges(innerBoundaryEdges);
+
+    
+
+    // face growing 과정에서 edge flip이 일어날 수 있다.
+    // 이 과정에서 edge가 생성되거나 제거되지는 않는다.
+
+    // 호두껍데기 바깥쪽
+    // 여기부터 4
+    rg_dList< pair<VEdge2D*, rg_Circle2D> > possiblyFlippingEdges;
+    for( list<VEdge2D*>::iterator i_outerBndEdge = outerBoundaryEdges.begin(); i_outerBndEdge != outerBoundaryEdges.end() ; ++i_outerBndEdge ) {
+        VEdge2D* currEdge = *i_outerBndEdge;
+        // Unbounded or virtual edges can not be flipped.
+        if( !currEdge->isBounded() ) {
+            continue;
+        }
+
+
+        // flippingTest_outside, flippingTest_inside : disk decrement에서 사용한 flippingTest의 변형
+        rg_Circle2D circumcircle;
+        bool isFlippingEdge = flippingTest_outside( currEdge, NUT_generator->getOuterFace(), outerNeighborGeneratorsOfNutSkull, circumcircle );
+
+        if( isFlippingEdge ) {
+            possiblyFlippingEdges.add( pair<VEdge2D*, rg_Circle2D>(currEdge, circumcircle) );
+        }
+    }
+
+
+    // do the flipping
+    while ( possiblyFlippingEdges.getSize() > 0 ) {
+        pair<VEdge2D*, rg_Circle2D> edgeToDefineMinTangentCircle = dequeueRootNode_VEdgeWithCircumcircleFarFromGeneratorToBeRemoved(possiblyFlippingEdges, NUT_generator);
+
+        VEdge2D* prevQuillEdge_CCW = rg_NULL;
+        VEdge2D* nextQuillEdge_CCW = rg_NULL;
+        
+        VEdge2D* edgeOfIncidentTriplet[2] = { NULL, NULL };
+        flipThisEdgeNFindTwoIncidentTriplets(NUT_generator->getOuterFace(), edgeToDefineMinTangentCircle, edgeOfIncidentTriplet[0], edgeOfIncidentTriplet[1]);
+
+        for (int j = 0; j < 2; j++) {
+            if (edgeOfIncidentTriplet[j]->isBounded()) {
+                reflectTheFlipOnTheIncidentTriplet_nutBreaking(possiblyFlippingEdges, edgeOfIncidentTriplet[j], outerNeighborGeneratorsOfNutSkull, NUT_generator->getOuterFace());
+            }
+        }
+    }
+    // 여기까지 4
+
+
+
+
+
+    // 호두껍데기 안쪽
+    // 여기부터 5
+    for ( list<VEdge2D*>::iterator i_bndEdge = innerBoundaryEdges.begin(); i_bndEdge != innerBoundaryEdges.end(); ++i_bndEdge ) {
+        VEdge2D* currBndEdge = *i_bndEdge;
+
+        rg_Circle2D circumcircle;
+        bool isFlippingEdge = flippingTest_inside(currBndEdge, NUT_generator->getInnerFace(), innerNeighborGeneratorsOfNutSkull, circumcircle);
+
+        if ( isFlippingEdge ) {
+            possiblyFlippingEdges.add( pair<VEdge2D*, rg_Circle2D>(currBndEdge, circumcircle) );
+        }
+    }
+
+    while ( possiblyFlippingEdges.getSize() > 0 ) {
+        pair<VEdge2D*, rg_Circle2D> edgeToDefineMinTangentCircle = dequeueRootNode_VEdgeWithCircumcircleFarFromGeneratorToBeRemoved(possiblyFlippingEdges, NUT_generator);
+
+        VEdge2D* prevQuillEdge_CCW = rg_NULL;
+        VEdge2D* nextQuillEdge_CCW = rg_NULL;
+
+        VEdge2D* edgeOfIncidentTriplet[2] = { NULL, NULL };
+        flipThisEdgeNFindTwoIncidentTriplets(NUT_generator->getInnerFace(), edgeToDefineMinTangentCircle, edgeOfIncidentTriplet[0], edgeOfIncidentTriplet[1]);
+
+        for (int j = 0; j < 2; j++) {
+            if (edgeOfIncidentTriplet[j]->isBounded()) {
+                reflectTheFlipOnTheIncidentTriplet_nutBreaking(possiblyFlippingEdges, edgeOfIncidentTriplet[j], innerNeighborGeneratorsOfNutSkull, NUT_generator->getInnerFace());
+            }
+        }
+    }
+    // 여기까지 5
+
+    // 여기까지 3
+
+
+
+
+
+
+
+    // VVertex_of_fully_grown_VFace의 좌표 값을 계산한다.
+    // 그리고 topology stitching 에서 필요할 주변 정보 수집
+    
+    // VVertex_of_fully_grown_VFace: nutcracking이 끝난 후의 최종적인 VVertex
+    // 여기부터 8
+
+    // 호두껍데기 바깥쪽
+    // 여기부터 11
+
+
+    // quill edge를 모아온다.
+    // 출력된 quill edge들은 CCW 정렬
+
+    VFace2D* outerFace = NUT_generator->getOuterFace();
+    list<VEdge2D*> outerQuillEdges;
+
+    VEdge2D* firstOuterEdge = outerFace->getFirstVEdge();
+    VEdge2D* currOuterEdge = firstOuterEdge;
+
+    do {
+        VEdge2D* currQuillEdge = NULL;
+        if ( currOuterEdge->getLeftFace() == outerFace ) {
+            currQuillEdge = currOuterEdge->getRightHand();
+            currOuterEdge = currOuterEdge->getLeftHand();
+        }
+        else {
+            currQuillEdge = currOuterEdge->getLeftLeg();
+            currOuterEdge = currOuterEdge->getRightLeg();
+        }
+
+        outerQuillEdges.push_back(currQuillEdge);
+    } while ( currOuterEdge != firstOuterEdge );
+    
+
+
+    // quill edge들의 CCW 선후관계 정리
+    // (그 사이의 VFace 들과의 관계도 포함)
+    // 여기부터 9
+    map<VEdge2D*, pair<VFace2D*, VFace2D*> >    edge_to_prevFace_nextFace_out;
+    map<VFace2D*, VEdge2D*>                     face_to_prevEdge_out;
+    map<VFace2D*, VEdge2D*>                     face_to_nextEdge_out;
+    map<VEdge2D*, VFace2D*>                     edge_to_oppositeFace_out;
+
+    for ( list<VEdge2D*>::iterator i_quillEdge = outerQuillEdges.begin(); i_quillEdge != outerQuillEdges.end(); ++i_quillEdge ) {
+        VEdge2D* currQuillEdge = *i_quillEdge;
+        VFace2D* prevFace = NULL;
+        VFace2D* nextFace = NULL;
+
+        if ( currQuillEdge->getMateFace( currQuillEdge->getStartVertex() ) == outerFace ) {
+            prevFace = currQuillEdge->getLeftFace();
+            nextFace = currQuillEdge->getRightFace();
+        }
+        else {
+            prevFace = currQuillEdge->getRightFace();
+            nextFace = currQuillEdge->getLeftFace();
+        }
+
+        edge_to_prevFace_nextFace_out[currQuillEdge] = make_pair(prevFace, nextFace);
+        face_to_prevEdge_out[nextFace]               = currQuillEdge;
+        face_to_nextEdge_out[prevFace]               = currQuillEdge;
+    }
+    // 여기까지 9
+
+    // 여기까지 11
+
+
+
+
+
+
+    // 호두껍데기 안쪽
+    // 여기부터 12
+    VFace2D* innerFace = NUT_generator->getInnerFace();
+    list<VEdge2D*> innerQuillEdges;
+
+    VEdge2D* firstInnerEdge = innerFace->getFirstVEdge();
+    VEdge2D* currInnerEdge = firstInnerEdge;
+
+    do {
+        VEdge2D* currQuillEdge = NULL;
+        if ( currInnerEdge->getRightFace() == innerFace ) {
+            currQuillEdge = currInnerEdge->getLeftHand();
+            currInnerEdge = currInnerEdge->getRightHand();
+        }
+        else {
+            currQuillEdge = currInnerEdge->getRightLeg();
+            currInnerEdge = currInnerEdge->getLeftLeg();
+        }
+
+        innerQuillEdges.push_back(currQuillEdge);
+    } while ( currInnerEdge != firstInnerEdge );
+
+    map<VEdge2D*, pair<VFace2D*, VFace2D*> >    edge_to_prevFace_nextFace_in;
+    map<VFace2D*, VEdge2D*>                     face_to_prevEdge_in;
+    map<VFace2D*, VEdge2D*>                     face_to_nextEdge_in;
+    map<VEdge2D*, VFace2D*>                     edge_to_oppositeFace_in;
+
+    for ( list<VEdge2D*>::iterator i_quillEdge = innerQuillEdges.begin(); i_quillEdge != innerQuillEdges.end(); ++i_quillEdge ) {
+        VEdge2D* currQuillEdge = *i_quillEdge;
+        VFace2D* prevFace = NULL;
+        VFace2D* nextFace = NULL;
+
+        if ( currQuillEdge->getMateFace( currQuillEdge->getStartVertex() ) == innerFace ) {
+            prevFace = currQuillEdge->getRightFace();
+            nextFace = currQuillEdge->getLeftFace();
+        }
+        else {
+            prevFace = currQuillEdge->getLeftFace();
+            nextFace = currQuillEdge->getRightFace();
+        }
+
+        edge_to_prevFace_nextFace_in[currQuillEdge] = make_pair(prevFace, nextFace);
+        face_to_prevEdge_in[nextFace]               = currQuillEdge;
+        face_to_nextEdge_in[prevFace]               = currQuillEdge;
+    }
+
+    // 여기까지 11
+
+
+
+
+
+    // 호두껍데기 안팍의 quill edge들의 연관관계 정리 및 VVertex 좌표값 계산
+    // 여기부터 12
+
+    // # quill edge: n
+    // # neighbor: m
+
+    // 현재는 각 quill edge마다 모든 neighbor와 계산을 하여 blocking disk를 찾는다.
+    // 현재의 time complexity: O(n*m)
+    // 추후 O(n+m)가능
+
+    // 호두껍데기 바깥쪽
+    for ( list<VEdge2D*>::iterator i_outerQuill = outerQuillEdges.begin(); i_outerQuill != outerQuillEdges.end(); ++i_outerQuill ) {
+        VEdge2D* outerQuill = *i_outerQuill;
+        rg_Circle2D circumcircle;
+
+        // 다음 함수에서 좌표값도 계산됨
+        Generator2D* blockingGen = findGeneratorWhichBlockThisEdge( outerQuill, outerFace, innerNeighborGeneratorsOfNutSkull, circumcircle );
+        edge_to_oppositeFace_out[outerQuill] = blockingGen->getOuterFace();
+
+        if ( outerQuill->getMateFace(outerQuill->getStartVertex()) == outerFace )
+            outerQuill->getEndVertex()->setCircumcircle(circumcircle);
+        else
+            outerQuill->getStartVertex()->setCircumcircle(circumcircle);
+    }
+    
+
+    // 호두껍데기 안쪽
+    for ( list<VEdge2D*>::iterator i_innerQuill = innerQuillEdges.begin(); i_innerQuill != innerQuillEdges.end(); ++i_innerQuill ) {
+        VEdge2D* innerQuill = *i_innerQuill;
+        rg_Circle2D circumcircle;
+        Generator2D* blockingGen = findGeneratorWhichBlockThisEdge( innerQuill, innerFace, outerNeighborGeneratorsOfNutSkull, circumcircle );
+        if ( blockingGen == m_containerGenerator )
+            edge_to_oppositeFace_in[innerQuill] = blockingGen->getInnerFace();
+        else
+            edge_to_oppositeFace_in[innerQuill] = blockingGen->getOuterFace();
+
+        if ( innerQuill->getMateFace(innerQuill->getStartVertex()) == innerFace )
+            innerQuill->getEndVertex()->setCircumcircle(circumcircle);
+        else
+            innerQuill->getStartVertex()->setCircumcircle(circumcircle);
+    }
+
+    // 여기까지 12
+    // 여기까지 8
+
+
+
+
+
+    // create new boundary edge loop
+
+    // old boundary edge loop to delete
+    list<VEdge2D*> oldOuterBoundary;
+    list<VEdge2D*> oldInnerBoundary;
+    outerFace->getBoundaryVEdges(oldOuterBoundary);
+    innerFace->getBoundaryVEdges(oldInnerBoundary);
+
+    for ( list<VEdge2D*>::iterator i_oldEdge = oldOuterBoundary.begin(); i_oldEdge != oldOuterBoundary.end(); ++i_oldEdge ) {
+        VEdge2D* oldEdge = *i_oldEdge;
+        oldEdge->setStatus(RED_E);
+    }
+
+    for ( list<VEdge2D*>::iterator i_oldEdge = oldInnerBoundary.begin(); i_oldEdge != oldInnerBoundary.end(); ++i_oldEdge ) {
+        VEdge2D* oldEdge = *i_oldEdge;
+        oldEdge->setStatus(RED_E);
+    }
+
+
+    // - make sequence of vertices on new boundary edge loop
+    // 여기부터 14
+    int sizeOfQuillEdges = outerQuillEdges.size() + innerQuillEdges.size();
+    vector<VEdge2D*> quillEdges;
+    //quillEdges.resize(sizeOfQuillEdges);
+    vector<bool> b_outerQuill;
+    //b_outerQuill.resize(sizeOfQuillEdges);
+
+    
+    VEdge2D* startQuillEdge = outerQuillEdges.front();
+    VEdge2D* currQuillEdge = startQuillEdge;
+
+    bool currQuillEdgeIsOutside = true;
+    do {
+        VFace2D* nextFace = NULL;
+        VEdge2D* nextQuillEdge_sameSide = NULL;
+        VFace2D* currBlockingFace = NULL;
+        VFace2D* nextBlockingFace = NULL;
+        VEdge2D* nextQuillEdge_oppositeSide = NULL;
+        VFace2D* blockingFace_of_oppositeQuillEdge = NULL;
+
+        if ( currQuillEdgeIsOutside ) {
+            nextFace                            = edge_to_prevFace_nextFace_out[currQuillEdge].second;
+            nextQuillEdge_sameSide              = face_to_nextEdge_out[nextFace];
+            currBlockingFace                    = edge_to_oppositeFace_out[currQuillEdge];
+            nextBlockingFace                    = edge_to_oppositeFace_out[nextQuillEdge_sameSide];
+
+            nextQuillEdge_oppositeSide          = face_to_nextEdge_in[currBlockingFace];
+            blockingFace_of_oppositeQuillEdge   = edge_to_oppositeFace_in[nextQuillEdge_oppositeSide];
+        }
+        else {
+            nextFace                            = edge_to_prevFace_nextFace_in[currQuillEdge].second;
+            nextQuillEdge_sameSide              = face_to_nextEdge_in[nextFace];
+            currBlockingFace                    = edge_to_oppositeFace_in[currQuillEdge];
+            nextBlockingFace                    = edge_to_oppositeFace_in[nextQuillEdge_sameSide];
+
+            nextQuillEdge_oppositeSide          = face_to_nextEdge_out[currBlockingFace];
+            blockingFace_of_oppositeQuillEdge   = edge_to_oppositeFace_out[nextQuillEdge_oppositeSide];
+        }
+
+        quillEdges.push_back(currQuillEdge);
+        b_outerQuill.push_back(currQuillEdgeIsOutside);
+
+        if ( currBlockingFace == nextBlockingFace ) {
+            currQuillEdge = nextQuillEdge_sameSide;
+        }
+        else {
+            currQuillEdge = nextQuillEdge_oppositeSide;
+            currQuillEdgeIsOutside = !currQuillEdgeIsOutside;
+        }
+    } while ( currQuillEdge != startQuillEdge );
+
+    quillEdges.push_back(quillEdges[0]);
+    b_outerQuill.push_back(b_outerQuill[0]);
+    // 여기까지 14
+
+
+
+
+    // - create new edges
+    //여기부터 15
+    vector<VEdge2D*> newEdges;
+    for ( int i = 0; i < quillEdges.size()-1; ++i ) {
+        VVertex2D*  startVertex     = NULL;
+        VVertex2D*  endVertex       = NULL;
+        VFace2D*    leftFace        = NULL;
+        VFace2D*    rightFace       = NULL;
+
+        VEdge2D*    prevQuillEdge   = quillEdges[i];
+        VEdge2D*    nextQuillEdge   = quillEdges[i+1];
+
+        if ( b_outerQuill[i] ) {
+            if ( prevQuillEdge->getMateFace( prevQuillEdge->getStartVertex() ) == outerFace ) {
+                startVertex = prevQuillEdge->getEndVertex();
+            }
+            else {
+                startVertex = prevQuillEdge->getStartVertex();
+            }
+            rightFace  = edge_to_prevFace_nextFace_out[prevQuillEdge].second;
+            leftFace   = edge_to_oppositeFace_out[prevQuillEdge];
+        }
+        else {
+            if ( prevQuillEdge->getMateFace( prevQuillEdge->getStartVertex() ) == innerFace ) {
+                startVertex = prevQuillEdge->getEndVertex();
+            }
+            else {
+                startVertex = prevQuillEdge->getStartVertex();
+            }
+            leftFace  = edge_to_prevFace_nextFace_in[prevQuillEdge].second;
+            rightFace = edge_to_oppositeFace_in[prevQuillEdge];
+        }
+
+        if ( b_outerQuill[i + 1] ) {
+            if ( nextQuillEdge->getMateFace( nextQuillEdge->getStartVertex() ) == outerFace ) {
+                endVertex = nextQuillEdge->getEndVertex();
+            }
+            else {
+                endVertex = nextQuillEdge->getStartVertex();
+            }
+        }
+        else {
+            if ( nextQuillEdge->getMateFace( nextQuillEdge->getStartVertex() ) == innerFace ) {
+                endVertex = nextQuillEdge->getEndVertex();
+            }
+            else {
+                endVertex = nextQuillEdge->getStartVertex();
+            }
+        }
+
+        VEdge2D*    newEdge         = createEdge(m_VEdges.back()->getID()+1);
+        newEdge->setStartVertex(startVertex);
+        newEdge->setEndVertex(endVertex);
+        newEdge->setLeftFace(leftFace);
+        newEdge->setRightFace(rightFace);
+
+        newEdges.push_back(newEdge);
+    }
+    newEdges.push_back(newEdges[0]);
+    // 여기까지 15
+
+
+    // topology 연결
+    // 여기부터 16
+    for ( int i = 0; i < newEdges.size() - 1; ++i ) {
+        VEdge2D* currNewEdge = newEdges[i];
+        VEdge2D* nextNewEdge = newEdges[i+1];
+
+        if ( b_outerQuill[i+1] ) {
+            currNewEdge->setRightHand(quillEdges[i+1]);
+            currNewEdge->setLeftHand(nextNewEdge);
+            nextNewEdge->setRightLeg(quillEdges[i+1]);
+            nextNewEdge->setLeftLeg(currNewEdge);
+        }
+        else {
+            currNewEdge->setRightHand(nextNewEdge);
+            currNewEdge->setLeftHand(quillEdges[i+1]);
+            nextNewEdge->setRightLeg(currNewEdge);
+            nextNewEdge->setLeftLeg(quillEdges[i+1]);
+        }
+    }
+
+
+    for ( int i = 1; i < newEdges.size(); ++i ) {
+        VEdge2D* currQuillEdge = quillEdges[i];
+        if ( b_outerQuill[i] ) {
+            if ( currQuillEdge->getMateFace( currQuillEdge->getStartVertex() ) == outerFace ) {
+                currQuillEdge->setLeftHand(newEdges[i-1]);
+                currQuillEdge->setRightHand(newEdges[i]);
+            }
+            else {
+                currQuillEdge->setRightLeg(newEdges[i-1]);
+                currQuillEdge->setLeftLeg(newEdges[i]);
+            }
+        }
+        else {
+            if ( currQuillEdge->getMateFace( currQuillEdge->getStartVertex() ) == innerFace ) {
+                currQuillEdge->setRightHand(newEdges[i-1]);
+                currQuillEdge->setLeftHand(newEdges[i]);
+            }
+            else {
+                currQuillEdge->setLeftLeg(newEdges[i-1]);
+                currQuillEdge->setRightLeg(newEdges[i]);
+            }
+        }
+    }
+
+    for ( int i = 0; i < newEdges.size() - 1; ++i ) {
+        VVertex2D* endVertex = newEdges[i]->getEndVertex();
+        endVertex->setFirstVEdge(newEdges[i]);
+
+        VFace2D* leftFace = newEdges[i]->getLeftFace();
+        VFace2D* rightFace = newEdges[i]->getRightFace();
+        leftFace->setFirstVEdge(newEdges[i]);
+        rightFace->setFirstVEdge(newEdges[i]);
+    }
+    // 여기까지 16
+
+    // remove outerFace and innerFace
+    m_VFaces.remove(outerFace);
+    m_VFaces.remove(innerFace);
+
+    delete outerFace;
+    delete innerFace;
+}
+
+
+
+bool VoronoiDiagramCIC::changeRadiusOfContainer(const double& targetRadius)
+{
+    Generator2D* container = m_generators.front();
+    rg_Circle2D     diskOfContainer = container->getDisk();
+    double          radiusOfContainer = diskOfContainer.getRadius();
+
+    if (targetRadius == radiusOfContainer) {
+        return true;
+    }
+
+    m_container.setRadius(targetRadius);
+    diskOfContainer.setRadius(targetRadius);
+    container->setDisk(diskOfContainer);
+
+    if (targetRadius > radiusOfContainer) {
+        increaseRadiusOfContainer(container);
+    }
+    else {
+        if (!reduceRadiusOfContainer(container)) {
+            m_container.setRadius(radiusOfContainer);
+            diskOfContainer.setRadius(radiusOfContainer);
+            container->setDisk(diskOfContainer);
+            return false;
+        }
+    }
+
+    // update container in double precision for contact map by Joonghyun March, 17
+    getDisk(0)->setRadius(targetRadius);
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    list<VEdge2D*> boundaryEdges;
+    container->getInnerFace()->getBoundaryVEdges(boundaryEdges);
+    updateTangentCircleForContactMap(boundaryEdges);
+
+    // update geometry of boundary VVertices of VFace of container
+    list<VVertex2D*> boundaryVertices;
+    container->getInnerFace()->getBoundaryVVertices(boundaryVertices);
+
+    list<VVertex2D*>::iterator i_vtx = boundaryVertices.begin();
+    for (; i_vtx != boundaryVertices.end(); ++i_vtx) {
+        VVertex2D* currVertex = *i_vtx;
+        updateCircumcircle(currVertex);
+    }
+
+    return true;
+}
+
+void VoronoiDiagramCIC::printGenerators()
+{
+    ofstream fout("generators_before.bcf");
+    ofstream fout2("generators_with_double_size_container.bcf");
+    fout << m_generators.size() << endl;
+    fout2 << m_generators.size() << endl;
+
+
+    list<VFace2D*>::iterator i_face = m_VFaces.begin();
+    Generator2D* container = (*i_face)->getGenerator();
+    fout << container->getID() << "\t" << container->getDisk().getCenterPt().getX() << "\t" << container->getDisk().getCenterPt().getY() << "\t" << container->getDisk().getRadius() << endl;
+    fout2 << container->getID() << "\t" << container->getDisk().getCenterPt().getX() << "\t" << container->getDisk().getCenterPt().getY() << "\t" << container->getDisk().getRadius() * 2.0 << endl;
+
+    ++i_face;
+    for (; i_face != m_VFaces.end(); ++i_face) {
+        Generator2D* currGenerator = (*i_face)->getGenerator();
+        fout << currGenerator->getID() << "\t" << currGenerator->getDisk().getCenterPt().getX() << "\t" << currGenerator->getDisk().getCenterPt().getY() << "\t" << currGenerator->getDisk().getRadius() << endl;
+        fout2 << currGenerator->getID() << "\t" << currGenerator->getDisk().getCenterPt().getX() << "\t" << currGenerator->getDisk().getCenterPt().getY() << "\t" << currGenerator->getDisk().getRadius() << endl;
+    }
+
+    fout.close();
+    fout2.close();
+
+    //list<Generator2D>::iterator i_gen = m_generators.begin();
+    //Generator2D* container = &(*i_gen);
+    //fout << container->getID() << "\t" << container->getDisk().getCenterPt().getX() << "\t" << container->getDisk().getCenterPt().getY() << "\t" << container->getDisk().getRadius() << endl;
+    //fout2 << container->getID() << "\t" << container->getDisk().getCenterPt().getX() << "\t" << container->getDisk().getCenterPt().getY() << "\t" << container->getDisk().getRadius() * 2.0 << endl;
+
+    //++i_gen;
+    //for ( ; i_gen != m_generators.end(); ++i_gen ) {
+    //    Generator2D* currGenerator = &(*i_gen);
+    //    fout << currGenerator->getID() << "\t" << currGenerator->getDisk().getCenterPt().getX() << "\t" << currGenerator->getDisk().getCenterPt().getY() << "\t" << currGenerator->getDisk().getRadius() << endl;
+    //    fout2 << currGenerator->getID() << "\t" << currGenerator->getDisk().getCenterPt().getX() << "\t" << currGenerator->getDisk().getCenterPt().getY() << "\t" << currGenerator->getDisk().getRadius() << endl;
+    //}
+
+    //fout.close();
+    //fout2.close();
+}
+
+void VoronoiDiagramCIC::printGenerators(const string& fname)
+{
+    ofstream fout(fname.c_str());
+    fout << m_generators.size() << endl;
+
+    list<VFace2D*>::iterator i_face = m_VFaces.begin();
+    Generator2D* container = (*i_face)->getGenerator();
+    fout << container->getID() << "\t" << container->getDisk().getCenterPt().getX() << "\t" << container->getDisk().getCenterPt().getY() << "\t" << container->getDisk().getRadius() << endl;
+
+    ++i_face;
+    for (; i_face != m_VFaces.end(); ++i_face) {
+        Generator2D* currGenerator = (*i_face)->getGenerator();
+        fout << currGenerator->getID() << "\t" << currGenerator->getDisk().getCenterPt().getX() << "\t" << currGenerator->getDisk().getCenterPt().getY() << "\t" << currGenerator->getDisk().getRadius() << endl;
+    }
+
+    fout.close();
+}
+
+
+
+void VoronoiDiagramCIC::writeTopology(ofstream& fout)
+{
+    fout << m_VFaces.size() << endl;
+
+    list<VFace2D*>::iterator i_face = m_VFaces.begin();
+    for (; i_face != m_VFaces.end(); ++i_face) {
+        Generator2D* currGenerator = (*i_face)->getGenerator();
+        fout << currGenerator->getID() << "\t" << currGenerator->getDisk().getCenterPt().getX() << "\t" << currGenerator->getDisk().getCenterPt().getY() << "\t" << currGenerator->getDisk().getRadius() << endl;
+    }
+
+    fout << endl;
+    fout << "Face\nID\tFirstEdge\tGenerator" << endl;
+    for (i_face = m_VFaces.begin(); i_face != m_VFaces.end(); ++i_face) {
+        VFace2D* currFace = *i_face;
+        fout << currFace->getID() << "\t" << currFace->getFirstVEdge()->getID() << "\t" << currFace->getGenerator()->getID() << endl;
+    }
+
+    fout << endl;
+    fout << "Edge\nID\tStartVertex\tEndVertex\tLeftFace\tRightFace\tLeftHand\tRightHand\tLeftLeg\tRightLeg" << endl;
+    list<VEdge2D*>::iterator i_edge = m_VEdges.begin();
+    for (; i_edge != m_VEdges.end(); ++i_edge) {
+        VEdge2D* currEdge = *i_edge;
+        fout << currEdge->getID() << "\t" << currEdge->getStartVertex()->getID() << "\t" << currEdge->getEndVertex()->getID() << "\t" <<
+            currEdge->getLeftFace()->getID() << "\t" << currEdge->getRightFace()->getID() << "\t" <<
+            currEdge->getLeftHand()->getID() << "\t" << currEdge->getRightHand()->getID() << "\t" <<
+            currEdge->getLeftLeg()->getID() << "\t" << currEdge->getRightLeg()->getID() << endl;
+    }
+
+    fout << endl;
+    fout << "Vertex\nID\tFirstEdge\tx\ty" << endl;
+    list<VVertex2D*>::iterator i_vtx = m_VVertices.begin();
+    for (; i_vtx != m_VVertices.end(); ++i_vtx) {
+        VVertex2D* currVtx = *i_vtx;
+        fout << currVtx->getID() << "\t" << currVtx->getFirstVEdge()->getID() << "\t" << currVtx->getLocation().getX() << "\t" << currVtx->getLocation().getY() << endl;
+    }
+}
+
+
+
+VFace2D* VoronoiDiagramCIC::findVFaceContainingQueryPoint(const rg_Point2D& pt) const
+{
+    VFace2D* VFaceContainingPoint = m_VFaces.back();
+    rg_Circle2D     currDisk = VFaceContainingPoint->getGenerator()->getDisk();
+    double          minDistancePt2GeneratorOnVFace;
+
+    if (VFaceContainingPoint == m_containerGenerator->getInnerFace()) {
+        minDistancePt2GeneratorOnVFace = currDisk.getRadius() - pt.distance(currDisk.getCenterPt());
+    }
+    else {
+        minDistancePt2GeneratorOnVFace = pt.distance(currDisk.getCenterPt()) - currDisk.getRadius();
+    }
+
+    VEdge2D* beginningEdgeOfFace = VFaceContainingPoint->getFirstVEdge();
+    VEdge2D* currBoundaryEdge = beginningEdgeOfFace;
+    VFace2D* currOppositeFace = getFaceOfOppositeSide(VFaceContainingPoint, currBoundaryEdge);
+
+    Generator2D* neighborGenerator = NULL;
+    double          distanceFromNeighbor2InputPt = DBL_MAX;
+
+
+    do {
+        currOppositeFace = getFaceOfOppositeSide(VFaceContainingPoint, currBoundaryEdge);
+        neighborGenerator = currOppositeFace->getGenerator();
+
+        if (neighborGenerator != NULL) {
+            currDisk = neighborGenerator->getDisk();
+
+            if (neighborGenerator == m_containerGenerator) {
+                distanceFromNeighbor2InputPt = currDisk.getRadius() - pt.distance(currDisk.getCenterPt());
+            }
+            else {
+                distanceFromNeighbor2InputPt = pt.distance(currDisk.getCenterPt()) - currDisk.getRadius();
+            }
+        }
+
+        if (distanceFromNeighbor2InputPt < minDistancePt2GeneratorOnVFace) {
+            VFaceContainingPoint = currOppositeFace;
+            minDistancePt2GeneratorOnVFace = distanceFromNeighbor2InputPt;
+            beginningEdgeOfFace = currBoundaryEdge;
+        }
+
+        currBoundaryEdge = getCCWNextEdgeOnFace(currBoundaryEdge, VFaceContainingPoint);
+
+    } while (currBoundaryEdge != beginningEdgeOfFace);
+
+    return VFaceContainingPoint;
+}
+
+
+
+void VoronoiDiagramCIC::updateVoronoiDiagramCIC_TOI_Method(Generator2D* const generator)
+{
+    Generator2D* closestGenerator = findClosestGeneratorToNewGenerator(generator);
+
+
+    list<VEdge2D*>   intersectingVEdges;
+    list<VVertex2D*> fictitiousVVertices;
+    findIntersectingVEdgesOfCurrVDAgainstNewVEdgeLoop_EdgeSplitPossible(generator, closestGenerator, intersectingVEdges, fictitiousVVertices);
+
+
+    list<VVertex2D*> newVVertices;
+    list<VEdge2D*>   newVEdges;
+    makeVEdgeLoopForNewGeneratorAndConnectToCurrVD(generator, intersectingVEdges, newVVertices, newVEdges);
+
+
+    connectCurrVDToNewVEdgeLoop(newVEdges);
+
+
+    mergeSplitVEdgesByFictitiousVVertex(fictitiousVVertices);
+
+
+    //computeCoordOfNewVVertices( newVVertices );
+    computeCoordOfNewVVertices(newVVertices);
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    updateTangentCircleForContactMap(newVEdges);
+}
+
+
+
+bool VoronoiDiagramCIC::isAnomalizingEdge(VEdge2D* const incidentEdge, Generator2D* const newGenerator)
+{
+    if (incidentEdge->getStartVertex()->isFictitious() || incidentEdge->getEndVertex()->isFictitious()) {
+        return false;
+    }
+
+    bool thisEdgeIsAnAnomalyzingEdge = false;
+
+    VFace2D* leftFace = incidentEdge->getLeftFace();
+    VFace2D* rightFace = incidentEdge->getRightFace();
+
+    if (leftFace->getGenerator() == m_containerGenerator || rightFace->getGenerator() == m_containerGenerator) {
+        rg_Point2D focusPoint, startVector, endVector, testVector1, testVector2;
+        rg_Circle2D tangentCircle1, tangentCircle2;
+
+        rg_Point2D centerOfGeneratorWhichDefineStartVertexInCCW, startVertexInCCW, endVertexInCCW;
+
+        if (leftFace->getGenerator() == m_containerGenerator) {
+            calculateTangentCircles(leftFace->getGenerator()->getDisk(), rightFace->getGenerator()->getDisk(), newGenerator->getDisk(), tangentCircle1, tangentCircle2);
+
+            centerOfGeneratorWhichDefineStartVertexInCCW = getMatingFace(incidentEdge->getStartVertex(), incidentEdge)->getGenerator()->getDisk().getCenterPt();
+            startVertexInCCW = incidentEdge->getEndVertex()->getLocation();
+            endVertexInCCW = incidentEdge->getStartVertex()->getLocation();
+
+            focusPoint = rightFace->getGenerator()->getDisk().getCenterPt();
+            startVector = incidentEdge->getEndVertex()->getLocation() - focusPoint;
+            endVector = incidentEdge->getStartVertex()->getLocation() - focusPoint;
+            testVector1 = tangentCircle1.getCenterPt() - focusPoint;
+            testVector2 = tangentCircle2.getCenterPt() - focusPoint;
+        }
+        else if (rightFace->getGenerator() == m_containerGenerator) {
+            calculateTangentCircles(rightFace->getGenerator()->getDisk(), leftFace->getGenerator()->getDisk(), newGenerator->getDisk(), tangentCircle1, tangentCircle2);
+
+            centerOfGeneratorWhichDefineStartVertexInCCW = getMatingFace(incidentEdge->getEndVertex(), incidentEdge)->getGenerator()->getDisk().getCenterPt();
+            startVertexInCCW = incidentEdge->getStartVertex()->getLocation();
+            endVertexInCCW = incidentEdge->getEndVertex()->getLocation();
+
+            focusPoint = leftFace->getGenerator()->getDisk().getCenterPt();
+            startVector = incidentEdge->getStartVertex()->getLocation() - focusPoint;
+            endVector = incidentEdge->getEndVertex()->getLocation() - focusPoint;
+            testVector1 = tangentCircle1.getCenterPt() - focusPoint;
+            testVector2 = tangentCircle2.getCenterPt() - focusPoint;
+        }
+
+        // check whether this edge is inversed or not.
+        bool thisEdgeIsInversed = false;
+        rg_Point2D vecToCenter = centerOfGeneratorWhichDefineStartVertexInCCW - focusPoint;
+        rg_Point2D vecToStart = startVertexInCCW - focusPoint;
+        rg_Point2D vecToEnd = endVertexInCCW - focusPoint;
+        //if ( angleFromVec1toVec2( vecToCenter, vecToStart ) > angleFromVec1toVec2( vecToCenter, vecToEnd ) ) {
+        //    thisEdgeIsInversed = true;
+        //}
+
+
+        if (thisEdgeIsInversed) {
+            rg_Point2D tempVector = startVector;
+            startVector = endVector;
+            endVector = tempVector;
+        }
+
+
+        if (angleFromVec1toVec2(startVector, endVector) >= angleFromVec1toVec2(startVector, testVector1) &&
+            angleFromVec1toVec2(startVector, endVector) >= angleFromVec1toVec2(startVector, testVector2)) {
+            thisEdgeIsAnAnomalyzingEdge = true;
+        }
+    }
+    else {
+        thisEdgeIsAnAnomalyzingEdge = VoronoiDiagram2DC::isAnomalizingEdge(incidentEdge, newGenerator);
+    }
+
+    return thisEdgeIsAnAnomalyzingEdge;
+}
+
+
+// Enclosing circle and two contained circles always have two tangent circles.
+void VoronoiDiagramCIC::calculateTangentCircles(const rg_Circle2D& enclosingCircle,
+    const rg_Circle2D& circle1,
+    const rg_Circle2D& circle2,
+    rg_Circle2D& result1,
+    rg_Circle2D& result2)
+{
+    rg_Circle2D bigCircle = enclosingCircle;
+    rg_Circle2D baseCircle;
+    rg_Circle2D midCircle;
+
+    if (circle1.getRadius() < circle2.getRadius())
+    {
+        baseCircle = circle1;
+        midCircle = circle2;
+    }
+    else
+    {
+        baseCircle = circle2;
+        midCircle = circle1;
+    }
+
+    //shrink and enlarge 
+    midCircle.setRadius(midCircle.getRadius() - baseCircle.getRadius());
+    bigCircle.setRadius(bigCircle.getRadius() + baseCircle.getRadius());
+
+    //translation
+    rg_Point2D translationVector = -(baseCircle.getCenterPt());
+    midCircle.setCenterPt(midCircle.getCenterPt() + translationVector);
+    bigCircle.setCenterPt(bigCircle.getCenterPt() + translationVector);
+
+    //rotation
+    rg_TMatrix2D rotateMatrix;
+    rg_Point2D fromVector = midCircle.getCenterPt();
+    rotateMatrix.rotate(fromVector, rg_Point2D(1, 0));
+
+    midCircle.setCenterPt(rotateMatrix * midCircle.getCenterPt());
+    bigCircle.setCenterPt(rotateMatrix * bigCircle.getCenterPt());
+
+    // The number of tangent circles is always two.
+    result1 = solution1(midCircle.getCenterPt().getX(), midCircle.getRadius(),
+        bigCircle.getCenterPt().getX(), bigCircle.getCenterPt().getY(),
+        bigCircle.getRadius());
+    result2 = solution2(midCircle.getCenterPt().getX(), midCircle.getRadius(),
+        bigCircle.getCenterPt().getX(), bigCircle.getCenterPt().getY(),
+        bigCircle.getRadius());
+
+    //rotate & translate
+    rg_TMatrix2D rotateMatrix2;
+    rotateMatrix2.rotate(rg_Point2D(1, 0), fromVector);
+    result1.setCenterPt(rotateMatrix2 * result1.getCenterPt() - translationVector);
+    result2.setCenterPt(rotateMatrix2 * result2.getCenterPt() - translationVector);
+
+    //shrink and enlarge
+    result1.setRadius(result1.getRadius() - baseCircle.getRadius());
+    result2.setRadius(result2.getRadius() - baseCircle.getRadius());
+}
+
+
+// first tangent circles of enclosing circle and two contained circles.
+rg_Circle2D VoronoiDiagramCIC::solution1(const double& x1, const double& r1, const double& x2, const double& y2, const double& r2)
+{
+    double x, y, r;
+
+    if (rg_EQ(r1, 0.))
+    {
+        x = x1 / 2.;
+        double den = (2. * (r2 * r2 -
+            y2 * y2));
+        double a = -r2 * r2 +
+            x2 * x2 + y2 * y2;
+        double b = -r2 * r2 +
+            x1 * x1 - 2 * x1 * x2 +
+            x2 * x2 + y2 * y2;
+        y = (r2 * r2 * y2 + x1 * x2 * y2 -
+            x2 * x2 * y2 -
+            y2 * y2 * y2 -
+            r2 * sqrt(a * b)
+            );
+        y = y / den;
+        r = sqrt(x * x + y * y);
+
+        return rg_Circle2D(x, y, r);
+    }
+
+    if (rg_EQ(y2, 0.))
+    {
+        x = (-(pow(r1, 2) * r2) -
+            r1 * pow(r2, 2) +
+            r2 * pow(x1, 2) +
+            r1 * pow(x2, 2)) /
+            (2 * r2 * x1 + 2 * r1 * x2);
+
+        y = -sqrt(pow(r2, 2) -
+            2 * pow(x2, 2) +
+            pow(x2, 4) / pow(r2, 2) -
+            (4 * pow(r1, 4) * pow(r2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (8 * pow(r1, 3) *
+                pow(r2, 3)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (4 * pow(r1, 2) *
+                pow(r2, 4)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (8 * pow(r1, 2) *
+                pow(r2, 2) * pow(x1, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (8 * r1 * pow(r2, 3) *
+                pow(x1, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (4 * pow(r2, 2) *
+                pow(x1, 4)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (4 * pow(r1, 4) *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (16 * pow(r1, 3) * r2 *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (12 * pow(r1, 2) *
+                pow(r2, 2) * pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (8 * pow(r1, 2) *
+                pow(x1, 2) * pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (16 * r1 * r2 * pow(x1, 2) *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (4 * pow(x1, 4) *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (12 * pow(r1, 2) *
+                pow(x2, 4)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (8 * pow(r1, 3) *
+                pow(x2, 4)) /
+            (r2 * pow(2 * r2 * x1 +
+                2 * r1 * x2, 2)) +
+            (8 * r1 * pow(x1, 2) *
+                pow(x2, 4)) /
+            (r2 * pow(2 * r2 * x1 +
+                2 * r1 * x2, 2)) +
+            (4 * pow(r1, 2) * pow(x2, 6)) /
+            (pow(r2, 2) *
+                pow(2 * r2 * x1 + 2 * r1 * x2,
+                    2)) -
+            (4 * pow(r1, 2) * r2 * x2) /
+            (2 * r2 * x1 + 2 * r1 * x2) -
+            (4 * r1 * pow(r2, 2) * x2) /
+            (2 * r2 * x1 + 2 * r1 * x2) +
+            (4 * r2 * pow(x1, 2) * x2) /
+            (2 * r2 * x1 + 2 * r1 * x2) +
+            (8 * r1 * pow(x2, 3)) /
+            (2 * r2 * x1 + 2 * r1 * x2) +
+            (4 * pow(r1, 2) * pow(x2, 3)) /
+            (r2 * (2 * r2 * x1 + 2 * r1 * x2)) -
+            (4 * pow(x1, 2) * pow(x2, 3)) /
+            (r2 * (2 * r2 * x1 + 2 * r1 * x2)) -
+            (4 * r1 * pow(x2, 5)) /
+            (pow(r2, 2) *
+                (2 * r2 * x1 + 2 * r1 * x2))) / 2.;
+
+        r = sqrt(x * x + y * y);
+
+        return rg_Circle2D(x, y, r);
+    }
+
+    x = (-4 * pow(r1, 2) *
+        pow(r2, 2) * x1 -
+        4 * r1 * pow(r2, 3) * x1 +
+        4 * pow(r2, 2) *
+        pow(x1, 3) -
+        4 * pow(r1, 3) * r2 * x2 -
+        4 * pow(r1, 2) * pow(r2, 2) *
+        x2 + 4 * r1 * r2 * pow(x1, 2) *
+        x2 + 4 * r1 * r2 * x1 *
+        pow(x2, 2) +
+        4 * pow(r1, 2) *
+        pow(x2, 3) +
+        4 * pow(r1, 2) * x1 *
+        pow(y2, 2) +
+        4 * r1 * r2 * x1 * pow(y2, 2) -
+        4 * pow(x1, 3) *
+        pow(y2, 2) +
+        4 * pow(r1, 2) * x2 *
+        pow(y2, 2) +
+        4 * sqrt(-(pow(r1, 6) *
+            pow(r2, 2) *
+            pow(y2, 2)) -
+            2 * pow(r1, 5) *
+            pow(r2, 3) * pow(y2, 2)
+            - pow(r1, 4) *
+            pow(r2, 4) * pow(y2, 2)
+            + 2 * pow(r1, 4) *
+            pow(r2, 2) *
+            pow(x1, 2) * pow(y2, 2)
+            + 2 * pow(r1, 3) *
+            pow(r2, 3) *
+            pow(x1, 2) * pow(y2, 2)
+            + pow(r1, 2) *
+            pow(r2, 4) *
+            pow(x1, 2) * pow(y2, 2)
+            - pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 4) * pow(y2, 2)
+            - 2 * pow(r1, 4) *
+            pow(r2, 2) * x1 * x2 *
+            pow(y2, 2) +
+            2 * pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 3) * x2 *
+            pow(y2, 2) +
+            pow(r1, 6) * pow(x2, 2) *
+            pow(y2, 2) +
+            2 * pow(r1, 5) * r2 *
+            pow(x2, 2) * pow(y2, 2)
+            + 2 * pow(r1, 4) *
+            pow(r2, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            - 2 * pow(r1, 4) *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            - 2 * pow(r1, 3) * r2 *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            - 2 * pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            + pow(r1, 2) *
+            pow(x1, 4) *
+            pow(x2, 2) * pow(y2, 2)
+            + 2 * pow(r1, 4) * x1 *
+            pow(x2, 3) * pow(y2, 2)
+            - 2 * pow(r1, 2) *
+            pow(x1, 3) *
+            pow(x2, 3) * pow(y2, 2)
+            - pow(r1, 4) *
+            pow(x2, 4) * pow(y2, 2)
+            + pow(r1, 2) *
+            pow(x1, 2) *
+            pow(x2, 4) * pow(y2, 2)
+            + pow(r1, 6) *
+            pow(y2, 4) +
+            2 * pow(r1, 5) * r2 *
+            pow(y2, 4) +
+            2 * pow(r1, 4) *
+            pow(r2, 2) * pow(y2, 4)
+            - 2 * pow(r1, 4) *
+            pow(x1, 2) * pow(y2, 4)
+            - 2 * pow(r1, 3) * r2 *
+            pow(x1, 2) * pow(y2, 4)
+            - 2 * pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 2) * pow(y2, 4)
+            + pow(r1, 2) *
+            pow(x1, 4) * pow(y2, 4)
+            + 2 * pow(r1, 4) * x1 * x2 *
+            pow(y2, 4) -
+            2 * pow(r1, 2) *
+            pow(x1, 3) * x2 *
+            pow(y2, 4) -
+            2 * pow(r1, 4) *
+            pow(x2, 2) * pow(y2, 4)
+            + 2 * pow(r1, 2) *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 4)
+            - pow(r1, 4) *
+            pow(y2, 6) +
+            pow(r1, 2) * pow(x1, 2) *
+            pow(y2, 6))) /
+        (2. * (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) * pow(y2, 2)
+            ));
+    y = (-(pow(r1, 2) * r2) -
+        r1 * pow(r2, 2) +
+        r2 * pow(x1, 2) +
+        r1 * pow(x2, 2) +
+        r1 * pow(y2, 2) +
+        (4 * pow(r1, 2) * pow(r2, 3) *
+            pow(x1, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r1 * pow(r2, 4) *
+            pow(x1, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r2, 3) *
+            pow(x1, 4)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (8 * pow(r1, 3) * pow(r2, 2) *
+            x1 * x2) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (8 * pow(r1, 2) * pow(r2, 3) *
+            x1 * x2) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (8 * r1 * pow(r2, 2) *
+            pow(x1, 3) * x2) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * pow(r1, 4) * r2 *
+            pow(x2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * pow(r1, 3) * pow(r2, 2) *
+            pow(x2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 2) * r2 *
+            pow(x1, 2) * pow(x2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * r1 * pow(r2, 2) *
+            pow(x1, 2) * pow(x2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (8 * pow(r1, 2) * r2 * x1 *
+            pow(x2, 3)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 3) *
+            pow(x2, 4)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 2) * r2 *
+            pow(x1, 2) * pow(y2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * r1 * pow(r2, 2) *
+            pow(x1, 2) * pow(y2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r2 * pow(x1, 4) *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 3) * x1 * x2 *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (8 * pow(r1, 2) * r2 * x1 * x2 *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r1 * pow(x1, 3) * x2 *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 3) * pow(x2, 2) *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * r2 * x1 *
+            sqrt(-(pow(r1, 6) *
+                pow(r2, 2) *
+                pow(y2, 2)) -
+                2 * pow(r1, 5) *
+                pow(r2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(r2, 4) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 3) *
+                pow(r2, 3) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(r2, 4) *
+                pow(x1, 2) *
+                pow(y2, 2) -
+                pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 4) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(r2, 2) * x1 * x2 *
+                pow(y2, 2) +
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 5) * r2 *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) * x1 *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(y2, 4) +
+                2 * pow(r1, 5) * r2 *
+                pow(y2, 4) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 4) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(y2, 4) +
+                2 * pow(r1, 4) * x1 * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x2, 2) *
+                pow(y2, 4) +
+                2 * pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 4) -
+                pow(r1, 4) *
+                pow(y2, 6) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(y2, 6))) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * r1 * x2 *
+            sqrt(-(pow(r1, 6) *
+                pow(r2, 2) *
+                pow(y2, 2)) -
+                2 * pow(r1, 5) *
+                pow(r2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(r2, 4) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 3) *
+                pow(r2, 3) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(r2, 4) *
+                pow(x1, 2) *
+                pow(y2, 2) -
+                pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 4) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(r2, 2) * x1 * x2 *
+                pow(y2, 2) +
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 5) * r2 *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) * x1 *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(y2, 4) +
+                2 * pow(r1, 5) * r2 *
+                pow(y2, 4) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 4) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(y2, 4) +
+                2 * pow(r1, 4) * x1 * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x2, 2) *
+                pow(y2, 4) +
+                2 * pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 4) -
+                pow(r1, 4) *
+                pow(y2, 6) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(y2, 6))) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2))) /
+        (2. * r1 * y2);
+
+    r = sqrt(x * x + y * y);
+
+    return rg_Circle2D(x, y, r);
+}
+
+
+// second tangent circles of enclosing circle and two contained circles.
+rg_Circle2D VoronoiDiagramCIC::solution2(const double& x1, const double& r1, const double& x2, const double& y2, const double& r2)
+{
+    double x, y, r;
+
+    if (rg_EQ(r1, 0.))
+    {
+        x = x1 / 2.;
+        y = (pow(r2, 2) * y2 + x1 * x2 * y2 -
+            pow(x2, 2) * y2 -
+            pow(y2, 3) +
+            r2 * sqrt(pow(r2, 2) -
+                pow(x2, 2) - pow(y2, 2))
+            * sqrt(pow(r2, 2) -
+                pow(x1, 2) + 2 * x1 * x2 -
+                pow(x2, 2) - pow(y2, 2))
+            ) /
+            (2. * (pow(r2, 2) -
+                pow(y2, 2)));
+        r = sqrt(x * x + y * y);
+
+        return rg_Circle2D(x, y, r);
+    }
+
+    if (rg_EQ(y2, 0.))
+    {
+        x = (-(pow(r1, 2) * r2) -
+            r1 * pow(r2, 2) +
+            r2 * pow(x1, 2) +
+            r1 * pow(x2, 2)) /
+            (2 * r2 * x1 + 2 * r1 * x2);
+
+
+        y = sqrt(pow(r2, 2) -
+            2 * pow(x2, 2) +
+            pow(x2, 4) / pow(r2, 2) -
+            (4 * pow(r1, 4) * pow(r2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (8 * pow(r1, 3) *
+                pow(r2, 3)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (4 * pow(r1, 2) *
+                pow(r2, 4)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (8 * pow(r1, 2) *
+                pow(r2, 2) * pow(x1, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (8 * r1 * pow(r2, 3) *
+                pow(x1, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (4 * pow(r2, 2) *
+                pow(x1, 4)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (4 * pow(r1, 4) *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (16 * pow(r1, 3) * r2 *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (12 * pow(r1, 2) *
+                pow(r2, 2) * pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (8 * pow(r1, 2) *
+                pow(x1, 2) * pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (16 * r1 * r2 * pow(x1, 2) *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            + (4 * pow(x1, 4) *
+                pow(x2, 2)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (12 * pow(r1, 2) *
+                pow(x2, 4)) /
+            pow(2 * r2 * x1 + 2 * r1 * x2, 2)\
+            - (8 * pow(r1, 3) *
+                pow(x2, 4)) /
+            (r2 * pow(2 * r2 * x1 + 2 * r1 * x2,
+                2)) +
+            (8 * r1 * pow(x1, 2) *
+                pow(x2, 4)) /
+            (r2 * pow(2 * r2 * x1 + 2 * r1 * x2,
+                2)) +
+            (4 * pow(r1, 2) * pow(x2, 6)) /
+            (pow(r2, 2) *
+                pow(2 * r2 * x1 + 2 * r1 * x2, 2)
+                ) -
+            (4 * pow(r1, 2) * r2 * x2) /
+            (2 * r2 * x1 + 2 * r1 * x2) -
+            (4 * r1 * pow(r2, 2) * x2) /
+            (2 * r2 * x1 + 2 * r1 * x2) +
+            (4 * r2 * pow(x1, 2) * x2) /
+            (2 * r2 * x1 + 2 * r1 * x2) +
+            (8 * r1 * pow(x2, 3)) /
+            (2 * r2 * x1 + 2 * r1 * x2) +
+            (4 * pow(r1, 2) * pow(x2, 3)) /
+            (r2 * (2 * r2 * x1 + 2 * r1 * x2)) -
+            (4 * pow(x1, 2) * pow(x2, 3)) /
+            (r2 * (2 * r2 * x1 + 2 * r1 * x2)) -
+            (4 * r1 * pow(x2, 5)) /
+            (pow(r2, 2) *
+                (2 * r2 * x1 + 2 * r1 * x2))) / 2.;
+
+        r = sqrt(x * x + y * y);
+
+        return rg_Circle2D(x, y, r);
+    }
+
+
+    x = (-4 * pow(r1, 2) *
+        pow(r2, 2) * x1 -
+        4 * r1 * pow(r2, 3) * x1 +
+        4 * pow(r2, 2) *
+        pow(x1, 3) -
+        4 * pow(r1, 3) * r2 * x2 -
+        4 * pow(r1, 2) * pow(r2, 2) *
+        x2 + 4 * r1 * r2 * pow(x1, 2) *
+        x2 + 4 * r1 * r2 * x1 *
+        pow(x2, 2) +
+        4 * pow(r1, 2) *
+        pow(x2, 3) +
+        4 * pow(r1, 2) * x1 *
+        pow(y2, 2) +
+        4 * r1 * r2 * x1 * pow(y2, 2) -
+        4 * pow(x1, 3) *
+        pow(y2, 2) +
+        4 * pow(r1, 2) * x2 *
+        pow(y2, 2) -
+        4 * sqrt(-(pow(r1, 6) *
+            pow(r2, 2) *
+            pow(y2, 2)) -
+            2 * pow(r1, 5) *
+            pow(r2, 3) * pow(y2, 2)
+            - pow(r1, 4) *
+            pow(r2, 4) * pow(y2, 2)
+            + 2 * pow(r1, 4) *
+            pow(r2, 2) *
+            pow(x1, 2) * pow(y2, 2)
+            + 2 * pow(r1, 3) *
+            pow(r2, 3) *
+            pow(x1, 2) * pow(y2, 2)
+            + pow(r1, 2) *
+            pow(r2, 4) *
+            pow(x1, 2) * pow(y2, 2)
+            - pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 4) * pow(y2, 2)
+            - 2 * pow(r1, 4) *
+            pow(r2, 2) * x1 * x2 *
+            pow(y2, 2) +
+            2 * pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 3) * x2 *
+            pow(y2, 2) +
+            pow(r1, 6) * pow(x2, 2) *
+            pow(y2, 2) +
+            2 * pow(r1, 5) * r2 *
+            pow(x2, 2) * pow(y2, 2)
+            + 2 * pow(r1, 4) *
+            pow(r2, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            - 2 * pow(r1, 4) *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            - 2 * pow(r1, 3) * r2 *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            - 2 * pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 2)
+            + pow(r1, 2) *
+            pow(x1, 4) *
+            pow(x2, 2) * pow(y2, 2)
+            + 2 * pow(r1, 4) * x1 *
+            pow(x2, 3) * pow(y2, 2)
+            - 2 * pow(r1, 2) *
+            pow(x1, 3) *
+            pow(x2, 3) * pow(y2, 2)
+            - pow(r1, 4) *
+            pow(x2, 4) * pow(y2, 2)
+            + pow(r1, 2) *
+            pow(x1, 2) *
+            pow(x2, 4) * pow(y2, 2)
+            + pow(r1, 6) *
+            pow(y2, 4) +
+            2 * pow(r1, 5) * r2 *
+            pow(y2, 4) +
+            2 * pow(r1, 4) *
+            pow(r2, 2) * pow(y2, 4)
+            - 2 * pow(r1, 4) *
+            pow(x1, 2) * pow(y2, 4)
+            - 2 * pow(r1, 3) * r2 *
+            pow(x1, 2) * pow(y2, 4)
+            - 2 * pow(r1, 2) *
+            pow(r2, 2) *
+            pow(x1, 2) * pow(y2, 4)
+            + pow(r1, 2) *
+            pow(x1, 4) * pow(y2, 4)
+            + 2 * pow(r1, 4) * x1 * x2 *
+            pow(y2, 4) -
+            2 * pow(r1, 2) *
+            pow(x1, 3) * x2 *
+            pow(y2, 4) -
+            2 * pow(r1, 4) *
+            pow(x2, 2) * pow(y2, 4)
+            + 2 * pow(r1, 2) *
+            pow(x1, 2) *
+            pow(x2, 2) * pow(y2, 4)
+            - pow(r1, 4) *
+            pow(y2, 6) +
+            pow(r1, 2) * pow(x1, 2) *
+            pow(y2, 6))) /
+        (2. * (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) * pow(y2, 2)
+            ));
+    y = (-(pow(r1, 2) * r2) -
+        r1 * pow(r2, 2) +
+        r2 * pow(x1, 2) +
+        r1 * pow(x2, 2) +
+        r1 * pow(y2, 2) +
+        (4 * pow(r1, 2) * pow(r2, 3) *
+            pow(x1, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r1 * pow(r2, 4) *
+            pow(x1, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r2, 3) *
+            pow(x1, 4)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (8 * pow(r1, 3) * pow(r2, 2) *
+            x1 * x2) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (8 * pow(r1, 2) * pow(r2, 3) *
+            x1 * x2) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (8 * r1 * pow(r2, 2) *
+            pow(x1, 3) * x2) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * pow(r1, 4) * r2 *
+            pow(x2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * pow(r1, 3) * pow(r2, 2) *
+            pow(x2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 2) * r2 *
+            pow(x1, 2) * pow(x2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * r1 * pow(r2, 2) *
+            pow(x1, 2) * pow(x2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (8 * pow(r1, 2) * r2 * x1 *
+            pow(x2, 3)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 3) *
+            pow(x2, 4)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 2) * r2 *
+            pow(x1, 2) * pow(y2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * r1 * pow(r2, 2) *
+            pow(x1, 2) * pow(y2, 2))
+        / (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r2 * pow(x1, 4) *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 3) * x1 * x2 *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (8 * pow(r1, 2) * r2 * x1 * x2 *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r1 * pow(x1, 3) * x2 *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) -
+        (4 * pow(r1, 3) * pow(x2, 2) *
+            pow(y2, 2)) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r2 * x1 *
+            sqrt(-(pow(r1, 6) *
+                pow(r2, 2) *
+                pow(y2, 2)) -
+                2 * pow(r1, 5) *
+                pow(r2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(r2, 4) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 3) *
+                pow(r2, 3) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(r2, 4) *
+                pow(x1, 2) *
+                pow(y2, 2) -
+                pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 4) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(r2, 2) * x1 * x2 *
+                pow(y2, 2) +
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 5) * r2 *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) * x1 *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(y2, 4) +
+                2 * pow(r1, 5) * r2 *
+                pow(y2, 4) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 4) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(y2, 4) +
+                2 * pow(r1, 4) * x1 * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x2, 2) *
+                pow(y2, 4) +
+                2 * pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 4) -
+                pow(r1, 4) *
+                pow(y2, 6) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(y2, 6))) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2)) +
+        (4 * r1 * x2 *
+            sqrt(-(pow(r1, 6) *
+                pow(r2, 2) *
+                pow(y2, 2)) -
+                2 * pow(r1, 5) *
+                pow(r2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(r2, 4) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 3) *
+                pow(r2, 3) *
+                pow(x1, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(r2, 4) *
+                pow(x1, 2) *
+                pow(y2, 2) -
+                pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 4) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(r2, 2) * x1 * x2 *
+                pow(y2, 2) +
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 5) * r2 *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(x2, 2) *
+                pow(y2, 2) +
+                2 * pow(r1, 4) * x1 *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) *
+                pow(x2, 3) *
+                pow(y2, 2) -
+                pow(r1, 4) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 4) *
+                pow(y2, 2) +
+                pow(r1, 6) *
+                pow(y2, 4) +
+                2 * pow(r1, 5) * r2 *
+                pow(y2, 4) +
+                2 * pow(r1, 4) *
+                pow(r2, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 3) * r2 *
+                pow(x1, 2) *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(r2, 2) *
+                pow(x1, 2) *
+                pow(y2, 4) +
+                pow(r1, 2) *
+                pow(x1, 4) *
+                pow(y2, 4) +
+                2 * pow(r1, 4) * x1 * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 2) *
+                pow(x1, 3) * x2 *
+                pow(y2, 4) -
+                2 * pow(r1, 4) *
+                pow(x2, 2) *
+                pow(y2, 4) +
+                2 * pow(r1, 2) *
+                pow(x1, 2) *
+                pow(x2, 2) *
+                pow(y2, 4) -
+                pow(r1, 4) *
+                pow(y2, 6) +
+                pow(r1, 2) *
+                pow(x1, 2) *
+                pow(y2, 6))) /
+        (4 * pow(r2, 2) *
+            pow(x1, 2) +
+            8 * r1 * r2 * x1 * x2 +
+            4 * pow(r1, 2) *
+            pow(x2, 2) +
+            4 * pow(r1, 2) *
+            pow(y2, 2) -
+            4 * pow(x1, 2) *
+            pow(y2, 2))) /
+        (2. * r1 * y2);
+    r = sqrt(x * x + y * y);
+
+    return rg_Circle2D(x, y, r);
+}
+
+
+
+void VoronoiDiagramCIC::computeCoordOfNewVVertices(list<VVertex2D*>& newVVertices)
+{
+    list<VVertex2D*>::iterator i_vtx;
+    for (i_vtx = newVVertices.begin(); i_vtx != newVVertices.end(); ++i_vtx) {
+        updateCircumcircle(*i_vtx);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::updateCircumcirclesOfNewVVertices(list<VVertex2D*>& newVVertices)
+{
+    list<VVertex2D*>::iterator i_vtx;
+    for (i_vtx = newVVertices.begin(); i_vtx != newVVertices.end(); ++i_vtx) {
+        if ((*i_vtx)->getStatus() == RED_V) {
+            continue;
+        }
+
+        updateCircumcircle(*i_vtx);
+    }
+}
+
+
+
+void VoronoiDiagramCIC::updateCircumcircle(VVertex2D* const vertex)
+{
+    rg_INT      numberOfCircumcircles = 0;
+    rg_Circle2D result1, result2;
+
+    Generator2D* definingGenerator[3];
+    getThreeGeneratorsDefiningVertex(vertex, definingGenerator[0], definingGenerator[1], definingGenerator[2]);
+
+    rg_Circle2D circle[3] = { definingGenerator[0]->getDisk(), definingGenerator[1]->getDisk(), definingGenerator[2]->getDisk() };
+
+    if (definingGenerator[0] == m_containerGenerator) {
+        calculateTangentCircles(circle[0], circle[1], circle[2], result1, result2);
+        numberOfCircumcircles = -1;
+    }
+    else if (definingGenerator[1] == m_containerGenerator) {
+        calculateTangentCircles(circle[1], circle[0], circle[2], result1, result2);
+        numberOfCircumcircles = -1;
+    }
+    else if (definingGenerator[2] == m_containerGenerator) {
+        calculateTangentCircles(circle[2], circle[1], circle[0], result1, result2);
+        numberOfCircumcircles = -1;
+    }
+    else {
+        numberOfCircumcircles = rg_Circle2D::makeCircumcircle(circle[0], circle[1], circle[2], result1, result2);
+    }
+
+    if (numberOfCircumcircles == 0) {
+        // error
+        // for debugging		
+        // By Joonghyun April 19, 2019
+        //string generatorTripletFileName = inputFileNameWithoutExtensionOfCICPackingArrangement + string("_generator_triplet.txt");
+        //ofstream fout(generatorTripletFileName.c_str());
+        //fout << "#iterations  : " << m_number_of_iterations_debug << endl;
+        //fout << "#movecounter : " << m_disk_move_counter_debug << endl;
+        //fout << "moving diskID: " << m_id_of_moving_disk_debug << endl;
+        ////fout << "intersecting disk ID pairs: " << m_id_of_intersecting_disk_debug;
+        //fout << definingGenerator[0]->getID() << endl;
+        //fout << definingGenerator[1]->getID() << endl;
+        //fout << definingGenerator[2]->getID() << endl;
+        //fout.close();
+  //      //printGenerators();
+        //// for debugging
+        //// By Joonghyun April 19, 2019
+        //string generatorSetFileName = inputFileNameWithoutExtensionOfCICPackingArrangement + string("_generators.bcf");
+        //printGenerators(generatorSetFileName.c_str());
+  //      exit(1);
+    }
+
+    rg_Point2D vector1 = circle[0].getCenterPt() - result1.getCenterPt();
+    rg_Point2D vector2 = circle[1].getCenterPt() - result1.getCenterPt();
+    rg_Point2D vector3 = circle[2].getCenterPt() - result1.getCenterPt();
+
+    if (definingGenerator[0] == m_containerGenerator) {
+        vector1 = -1.0 * vector1;
+    }
+    if (definingGenerator[1] == m_containerGenerator) {
+        vector2 = -1.0 * vector2;
+    }
+    if (definingGenerator[2] == m_containerGenerator) {
+        vector3 = -1.0 * vector3;
+    }
+
+    double angle12 = angleFromVec1toVec2(vector1, vector2);
+    double angle13 = angleFromVec1toVec2(vector1, vector3);
+
+
+    switch (numberOfCircumcircles)
+    {
+    case 1:
+        // Although there is only one circumcircle, we should ignore the result with wrong orientation.
+        //if( angle12 < angle13 ) {
+            //vertex->setLocation( result1.getCenterPt() );
+        vertex->setCircumcircle(result1);
+        vertex->setStatus(WHITE_V);
+
+        //}
+        //else {
+//            AfxMessageBox( "Vertex Coordinate: a circumcircle has wrong orientation.");
+        //    exit(1);
+        //}
+
+        break;
+
+
+
+    case 2:
+        if (angle12 < angle13) {
+            //vertex->setLocation( result1.getCenterPt() );
+            vertex->setCircumcircle(result1);
+            vertex->setStatus(WHITE_V);
+        }
+        else {
+            //vertex->setLocation( result2.getCenterPt() );
+            vertex->setCircumcircle(result2);
+            vertex->setStatus(WHITE_V);
+        }
+
+        break;
+
+
+
+    default: // numberOfCircumcircles == -1, tangent outside to two circles and inside to the infinite circle.
+        if (angle12 < angle13) {
+            //vertex->setLocation( result1.getCenterPt() );
+            vertex->setCircumcircle(result1);
+            vertex->setStatus(WHITE_V);
+        }
+        else {
+            //vertex->setLocation( result2.getCenterPt() );
+            vertex->setCircumcircle(result2);
+            vertex->setStatus(WHITE_V);
+        }
+
+        break;
+    }
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    updateTangentCircleForContactMap(vertex);
+}
+
+
+
+void VoronoiDiagramCIC::getThreeGeneratorsDefiningVertex(VVertex2D* tVertex, Generator2D*& generator1, Generator2D*& generator2, Generator2D*& generator3)
+{
+    VEdge2D* firstEdge = tVertex->getFirstVEdge();
+    VEdge2D* tempEdge = rg_NULL;
+
+    if (firstEdge->getStartVertex() == tVertex) {
+        tempEdge = firstEdge->getRightLeg();
+
+        generator1 = firstEdge->getRightFace()->getGenerator();
+        generator2 = firstEdge->getLeftFace()->getGenerator();
+        VFace2D* faceOfGenerator3 = getFaceOfOppositeSide(firstEdge->getRightFace(), tempEdge);
+        generator3 = faceOfGenerator3->getGenerator();
+    }
+    else {
+        tempEdge = firstEdge->getLeftHand();
+
+        generator1 = firstEdge->getLeftFace()->getGenerator();
+        generator2 = firstEdge->getRightFace()->getGenerator();
+        VFace2D* faceOfGenerator3 = getFaceOfOppositeSide(firstEdge->getLeftFace(), tempEdge);
+        generator3 = faceOfGenerator3->getGenerator();
+    }
+}
+
+
+
+rg_Point2D VoronoiDiagramCIC::getPassingPtOnEdge(VFace2D* lFace, VFace2D* rFace, VVertex2D* sVertex, VVertex2D* eVertex)
+{
+    if (lFace->getGenerator() == m_containerGenerator)
+    {
+        double radiusOfBigCircle = m_VFaces.front()->getGenerator()->getDisk().getRadius();
+        rg_Point2D centerOfContainer = lFace->getGenerator()->getDisk().getCenterPt();
+        rg_Point2D directionVector = rFace->getGenerator()->getDisk().getCenterPt() - centerOfContainer;
+        rg_REAL distanceCenter2Center = directionVector.magnitude();
+        directionVector = directionVector.getUnitVector();
+
+        if (rg_EQ(directionVector.magnitude(), 0.0)) {
+            directionVector = rg_Point2D(1.0, 0.0);
+        }
+
+        rg_REAL magnitude = (radiusOfBigCircle + rFace->getGenerator()->getDisk().getRadius() + distanceCenter2Center) / 2.;
+
+        return centerOfContainer + (directionVector * magnitude);
+    }
+    else if (rFace->getGenerator() == m_containerGenerator)
+    {
+        double radiusOfBigCircle = m_VFaces.front()->getGenerator()->getDisk().getRadius();
+        rg_Point2D centerOfContainer = rFace->getGenerator()->getDisk().getCenterPt();
+        rg_Point2D directionVector = lFace->getGenerator()->getDisk().getCenterPt() - centerOfContainer;
+        rg_REAL distanceCenter2Center = directionVector.magnitude();
+        directionVector = directionVector.getUnitVector();
+
+        if (rg_EQ(directionVector.magnitude(), 0.0)) {
+            directionVector = rg_Point2D(1.0, 0.0);
+        }
+        rg_REAL magnitude = (radiusOfBigCircle + lFace->getGenerator()->getDisk().getRadius() + distanceCenter2Center) / 2.;
+
+        return centerOfContainer + (directionVector * magnitude);
+    }
+
+
+    //     if( lFace->getGenerator() == m_containerGenerator || rFace->getGenerator() == m_containerGenerator ) {
+    //         rg_Circle2D container, innerDisk;
+    //         if( lFace->getGenerator() == m_containerGenerator ) {
+    //             container = *lFace->getGenerator()->getDisk();
+    //             innerDisk = *rFace->getGenerator()->getDisk();
+    //         }
+    //         else {
+    //             container = *rFace->getGenerator()->getDisk();
+    //             innerDisk = *lFace->getGenerator()->getDisk();
+    //         }
+    // 
+    //         if( rg_EQ( container.getCenterPt().distance( innerDisk.getCenterPt() ), 0.0 ) ) {
+    //             // special case: edge type is circular. 
+    //         }
+    // 
+    //         bool areVerticesSameSide = false;
+    // 
+    //         double distanceOfStartVertexFromLine = 0.0;
+    //         double distanceOfEndVertexFromLine   = 0.0;
+    // 
+    //         double y1 = innerDisk.getCenterPt().getY();
+    //         double y2 = container.getCenterPt().getY();
+    //         double x1 = innerDisk.getCenterPt().getX();
+    //         double x2 = container.getCenterPt().getX();
+    // 
+    //         double diffY = y2 - y1;
+    //         double diffX = x2 - x1;
+    //         double constantOfLineEquation = diffX * y1 - diffY * x1;
+    // 
+    //         double distanceOfStartVertexFromLine = diffY * sVertex->getLocation().getX() - diffX * sVertex->getLocation().getY() + constantOfLineEquation;
+    //         double distanceOfEndVertexFromLine   = diffY * eVertex->getLocation().getX() - diffX * eVertex->getLocation().getY() + constantOfLineEquation;
+    // 
+    //         if( distanceOfStartVertexFromLine * distanceOfEndVertexFromLine < 0 ) {
+    //             // Two vertices are located different plane. Return center of minimum or maximum tangent circle.
+    //             areVerticesSameSide = false;
+    //         }
+    //         else {
+    //             // Two vertices are located same plane. Return center of tangent circle which has middle size radius of circumcircles of start and end vertices.
+    //             areVerticesSameSide = true;
+    //         }
+    //         
+    //     }
+    else
+    {
+        rg_Circle2D c1, c2;	//c1.r > c2.r
+        if (lFace->getGenerator()->getDisk().getRadius() > rFace->getGenerator()->getDisk().getRadius())
+        {
+            c1 = lFace->getGenerator()->getDisk();
+            c2 = rFace->getGenerator()->getDisk();
+        }
+        else
+        {
+            c2 = lFace->getGenerator()->getDisk();
+            c1 = rFace->getGenerator()->getDisk();
+        }
+
+        rg_Point2D cp = (c1.getCenterPt() + c2.getCenterPt()) / 2.;
+
+        return cp + (c2.getCenterPt() - c1.getCenterPt()).getUnitVector() * (c1.getRadius() / 2.0 - c2.getRadius() / 2.0);
+    }
+}
+
+
+
+int VoronoiDiagramCIC::computeCircumcirclesForDeletion(VFace2D* prevFace, VFace2D* currFace, VFace2D* nextFace, rg_Circle2D& circumCircle1, rg_Circle2D& circumCircle2)
+{
+    rg_INT      numberOfCircumcircles = 0;
+
+    //Generator2D* definingGenerator[3];
+    //getThreeGeneratorsDefiningVertex(vertex, definingGenerator[0], definingGenerator[1], definingGenerator[2]);
+    //rg_Circle2D circle[3] = { prevFace-> ,->getDisk(), definingGenerator[1]->getDisk(), definingGenerator[2]->getDisk() };
+
+    rg_Circle2D circle[3] = { prevFace->getGenerator()->getDisk(), currFace->getGenerator()->getDisk(), nextFace->getGenerator()->getDisk() };
+
+    if (prevFace->getGenerator() == m_containerGenerator) {
+        calculateTangentCircles(circle[0], circle[1], circle[2], circumCircle1, circumCircle2);
+        numberOfCircumcircles = 2;
+    }
+    else if (currFace->getGenerator() == m_containerGenerator) {
+        calculateTangentCircles(circle[1], circle[0], circle[2], circumCircle1, circumCircle2);
+        numberOfCircumcircles = 2;
+    }
+    else if (nextFace->getGenerator() == m_containerGenerator) {
+        calculateTangentCircles(circle[2], circle[1], circle[0], circumCircle1, circumCircle2);
+        numberOfCircumcircles = 2;
+    }
+    else {
+        numberOfCircumcircles = rg_Circle2D::makeCircumcircle(circle[0], circle[1], circle[2], circumCircle1, circumCircle2);
+    }
+
+    return numberOfCircumcircles;
+}
+
+
+
+bool VoronoiDiagramCIC::isCorrectCircumcircle(rg_Circle2D& circumcircle, VFace2D* prevFace, VFace2D* currFace, VFace2D* nextFace)
+{
+    rg_Point2D vecCircumcircleToPrevFace = prevFace->getGenerator()->getDisk().getCenterPt() - circumcircle.getCenterPt();
+    rg_Point2D vecCircumcircleToCurrFace = currFace->getGenerator()->getDisk().getCenterPt() - circumcircle.getCenterPt();
+    rg_Point2D vecCircumcircleToNextFace = nextFace->getGenerator()->getDisk().getCenterPt() - circumcircle.getCenterPt();
+
+    if (prevFace->getGenerator() == m_containerGenerator) {
+        vecCircumcircleToPrevFace = -vecCircumcircleToPrevFace;
+    }
+    else if (currFace->getGenerator() == m_containerGenerator) {
+        vecCircumcircleToCurrFace = -vecCircumcircleToCurrFace;
+    }
+    else if (nextFace->getGenerator() == m_containerGenerator) {
+        vecCircumcircleToNextFace = -vecCircumcircleToNextFace;
+    }
+
+
+
+    /*double anglePrevToCurr = angleFromVec1toVec2(vecCircumcircleToPrevFace, vecCircumcircleToCurrFace);
+    double anglePrevToNext = angleFromVec1ToVec2(vecCircumcircleToPrevFace, vecCircumcircleToNextFace);
+
+
+
+    if (anglePrevToCurr > anglePrevToNext) {
+        return true;
+    }
+    else {
+        return false;
+    }*/
+
+    double angleNextToPrev = angleFromVec1toVec2(vecCircumcircleToNextFace, vecCircumcircleToPrevFace);
+    double angleNextToCurr = angleFromVec1toVec2(vecCircumcircleToNextFace, vecCircumcircleToCurrFace);
+
+    if (angleNextToPrev > angleNextToCurr) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+
+bool VoronoiDiagramCIC::thisEdgeIsIntersectedByOffsetDisk(VEdge2D* edge, const double betaValue)
+{
+    VFace2D* leftFace = edge->getLeftFace();
+    VFace2D* rightFace = edge->getRightFace();
+
+    if (leftFace->getGenerator() == m_containerGenerator || rightFace->getGenerator() == m_containerGenerator) {
+        return false;
+    }
+
+    rg_Circle2D leftDisk = leftFace->getGenerator()->getDisk();
+    rg_Circle2D rightDisk = rightFace->getGenerator()->getDisk();
+
+    double distanceBetweenCenters = leftDisk.getCenterPt().distance(rightDisk.getCenterPt());
+
+    if (distanceBetweenCenters - (leftDisk.getRadius() + rightDisk.getRadius() + 2.0 * betaValue) < 0.0) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+
+
+
+bool VoronoiDiagramCIC::increaseRadiusOfContainer(Generator2D* increasedContainer)
+{
+    rg_dList< pair<VEdge2D*, rg_Circle2D> > possiblyFlippingEdges;
+    collectPossiblyFlippingEdgesOnBoundaryEdgesOfContainer_increasing(increasedContainer, possiblyFlippingEdges);
+
+    VFace2D* faceOfContainer = increasedContainer->getInnerFace(); // bug fix: getOuterFace()->getInnerFace()
+    while (possiblyFlippingEdges.getSize() > 0) {
+        pair<VEdge2D*, rg_Circle2D> edgeToDefineMinTangentCircle = dequeueRootNode_DiskTripletWithMinTangentCircle(possiblyFlippingEdges);
+
+        VEdge2D* edgeOfIncidentTriplet[2] = { NULL, NULL };
+        flipThisEdgeNFindTwoIncidentTriplets(faceOfContainer, edgeToDefineMinTangentCircle, edgeOfIncidentTriplet[0], edgeOfIncidentTriplet[1]);
+
+        reflectTheFlipOnTheIncidentTriplet_increasingContainer(possiblyFlippingEdges, edgeOfIncidentTriplet[0], faceOfContainer);
+        reflectTheFlipOnTheIncidentTriplet_increasingContainer(possiblyFlippingEdges, edgeOfIncidentTriplet[1], faceOfContainer);
+    }
+
+    list<VVertex2D*> boundaryVertices;
+    increasedContainer->getInnerFace()->getBoundaryVVertices(boundaryVertices);
+
+    for (list<VVertex2D*>::iterator i_vtx = boundaryVertices.begin(); i_vtx != boundaryVertices.end(); ++i_vtx) {
+        VVertex2D* currVtx = *i_vtx;
+        updateCircumcircle(currVtx);
+    }
+
+    return true;
+}
+
+
+
+void VoronoiDiagramCIC::collectPossiblyFlippingEdgesOnBoundaryEdgesOfContainer_increasing(Generator2D* container, rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges)
+{
+    list<VEdge2D*> boundaryEdges;
+    container->getInnerFace()->getBoundaryVEdges(boundaryEdges); // bug fix: getOuterFace()->getInnerFace()
+
+    list<VEdge2D*>::iterator i_bndEdge;
+    for (i_bndEdge = boundaryEdges.begin(); i_bndEdge != boundaryEdges.end(); ++i_bndEdge) {
+        VEdge2D* currBndEdge = *i_bndEdge;
+
+        rg_Circle2D circumcircle;
+        bool isFlippingEdge = isThisEdgeFlippingEdge_increasingContainer(currBndEdge, container->getInnerFace(), circumcircle); // bug fix: getOuterFace()->getInnerFace()
+
+        if (isFlippingEdge) {
+            possiblyFlippingEdges.add(pair<VEdge2D*, rg_Circle2D>(currBndEdge, circumcircle));
+        }
+    }
+}
+
+
+
+bool VoronoiDiagramCIC::isThisEdgeFlippingEdge_increasingContainer(VEdge2D* edge, VFace2D* faceOfContainer, rg_Circle2D& circumcircle)
+{
+    VFace2D* prevFace = rg_NULL;
+    VFace2D* currFace = rg_NULL;
+    VFace2D* nextFace = rg_NULL;
+
+    if (edge->getLeftFace() == faceOfContainer) {
+        currFace = edge->getRightFace();
+        prevFace = getMatingFace(edge->getStartVertex(), edge);
+        nextFace = getMatingFace(edge->getEndVertex(), edge);
+    }
+    else if (edge->getRightFace() == faceOfContainer) {
+        currFace = edge->getLeftFace();
+        prevFace = getMatingFace(edge->getEndVertex(), edge);
+        nextFace = getMatingFace(edge->getStartVertex(), edge);
+    }
+    else {
+        return false;
+    }
+
+    bool isFlippingEdge = false;
+
+    if (nextFace == prevFace || nextFace == currFace || prevFace == currFace) {
+        return isFlippingEdge;
+    }
+
+    rg_Circle2D tangentCircle[2];
+    int numCC = rg_Circle2D::makeCircumcircle(prevFace->getGenerator()->getDisk(),
+        currFace->getGenerator()->getDisk(),
+        nextFace->getGenerator()->getDisk(),
+        tangentCircle[0],
+        tangentCircle[1]);
+
+    switch (numCC) {
+    case 0:
+        break;
+
+    case 1:
+        if (isCorrectCircumcircle(tangentCircle[0], prevFace, currFace, nextFace) &&
+            isThisCircumcircleInContainer(tangentCircle[0], faceOfContainer->getGenerator())) {
+            circumcircle = tangentCircle[0];
+            isFlippingEdge = true;
+        }
+        break;
+
+    case 2:
+        if (isCorrectCircumcircle(tangentCircle[0], prevFace, currFace, nextFace) &&
+            isThisCircumcircleInContainer(tangentCircle[0], faceOfContainer->getGenerator())) {
+            circumcircle = tangentCircle[0];
+            isFlippingEdge = true;
+        }
+        else if (isCorrectCircumcircle(tangentCircle[1], prevFace, currFace, nextFace) &&
+            isThisCircumcircleInContainer(tangentCircle[1], faceOfContainer->getGenerator())) {
+            circumcircle = tangentCircle[1];
+            isFlippingEdge = true;
+        }
+        else {
+
+        }
+        break;
+    }
+
+    return isFlippingEdge;
+}
+
+
+
+bool VoronoiDiagramCIC::isThisCircumcircleInContainer(const rg_Circle2D& circumcircle, Generator2D* container)
+{
+    double distanceBetweenCenterPointsOfCircumcircleNContainer = 0.0;
+    distanceBetweenCenterPointsOfCircumcircleNContainer = container->getDisk().getCenterPt().distance(circumcircle.getCenterPt());
+
+    bool isThisCircumcircleIncluded = false;
+    if (distanceBetweenCenterPointsOfCircumcircleNContainer + circumcircle.getRadius() < container->getDisk().getRadius()) {
+        isThisCircumcircleIncluded = true;
+    }
+
+    return isThisCircumcircleIncluded;
+}
+
+
+
+void VoronoiDiagramCIC::flipThisEdgeNFindTwoIncidentTriplets_increasing(VFace2D* faceOfContainer, pair<VEdge2D*, rg_Circle2D>& edgeNCircle, VEdge2D*& incidentTriplet1, VEdge2D*& incidentTriplet2)
+{
+    VEdge2D* flippingEdge = edgeNCircle.first;
+    rg_Circle2D     circumcircle = edgeNCircle.second;
+
+    flippingEdge->flip();
+
+    VVertex2D* startVtx = flippingEdge->getStartVertex();
+    VVertex2D* endVtx = flippingEdge->getEndVertex();
+    VFace2D* matingFaceOfStartVtx = getMatingFace(startVtx, flippingEdge);
+
+    if (matingFaceOfStartVtx == faceOfContainer) {
+        startVtx->setCircumcircle(circumcircle);
+        updateTangentCircleForContactMap(startVtx); // tangent circle of three generators for disk packing by Joonghyun March, 15
+        updateCircumcircle(endVtx);
+        incidentTriplet1 = flippingEdge->getLeftHand();
+        incidentTriplet2 = flippingEdge->getRightHand();
+    }
+    else {
+        endVtx->setCircumcircle(circumcircle);
+        updateTangentCircleForContactMap(endVtx); // tangent circle of three generators for disk packing by Joonghyun March, 15
+        updateCircumcircle(startVtx);
+        incidentTriplet1 = flippingEdge->getLeftLeg();
+        incidentTriplet2 = flippingEdge->getRightLeg();
+    }
+}
+
+
+
+void VoronoiDiagramCIC::reflectTheFlipOnTheIncidentTriplet_increasingContainer(rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges, VEdge2D*& edgeOfIncidentTriplet, VFace2D*& faceOfContainer)
+{
+    rg_dNode< pair<VEdge2D*, rg_Circle2D> >* updateNode = NULL;
+    rg_dNode< pair<VEdge2D*, rg_Circle2D> >* currNode = possiblyFlippingEdges.getFirstpNode();
+    for (int i = 0; i < possiblyFlippingEdges.getSize(); i++, currNode = currNode->getNext()) {
+        VEdge2D* currEdge = currNode->getpEntity()->first;
+
+        if (currEdge == edgeOfIncidentTriplet) {
+            updateNode = currNode;
+            break;
+        }
+    }
+
+    rg_Circle2D circumcircle;
+    bool isFlippingEdge = isThisEdgeFlippingEdge_increasingContainer(edgeOfIncidentTriplet, faceOfContainer, circumcircle);
+
+    if (isFlippingEdge) {
+        if (updateNode == NULL) {
+            possiblyFlippingEdges.add(pair<VEdge2D*, rg_Circle2D>(edgeOfIncidentTriplet, circumcircle));
+        }
+        else {
+            currNode->getpEntity()->second = circumcircle;
+        }
+    }
+    else {
+        if (updateNode != NULL) {
+            possiblyFlippingEdges.kill(updateNode);
+        }
+    }
+}
+
+
+
+bool VoronoiDiagramCIC::reduceRadiusOfContainer(Generator2D* reducedContainer)
+{
+    if (!ThisIsPossibleContainerReduction(reducedContainer, WEEK_CONSTRAINT_AT_LEAST_INTERSECTED)) {
+        return false;
+    }
+
+    rg_dList< pair<VEdge2D*, rg_Circle2D> > possiblyFlippingEdges;
+    collectPossiblyFlippingEdgesOnQuillEdgesOfContainer_reducing(reducedContainer, possiblyFlippingEdges);
+
+    VFace2D* faceOfContainer = reducedContainer->getInnerFace(); // bug fix: getOuterFace()->getInnerFace()
+    while (possiblyFlippingEdges.getSize() > 0) {
+        pair<VEdge2D*, rg_Circle2D> currPair = possiblyFlippingEdges.popFront();
+
+        VEdge2D* incidentQuillEdge[2] = { NULL, NULL };
+        flipThisEdgeNFindTwoIncidentQuillEdges(faceOfContainer, currPair.first, incidentQuillEdge[0], incidentQuillEdge[1]);
+
+        reflectTheFlipOnTheIncidentQuillEdge_reducingContainer(possiblyFlippingEdges, incidentQuillEdge[0], faceOfContainer);
+        reflectTheFlipOnTheIncidentQuillEdge_reducingContainer(possiblyFlippingEdges, incidentQuillEdge[1], faceOfContainer);
+    }
+
+    list<VVertex2D*> boundaryVertices;
+    reducedContainer->getInnerFace()->getBoundaryVVertices(boundaryVertices);
+
+    for (list<VVertex2D*>::iterator i_vtx = boundaryVertices.begin(); i_vtx != boundaryVertices.end(); ++i_vtx) {
+        VVertex2D* currVtx = *i_vtx;
+        updateCircumcircle(currVtx);
+    }
+
+    return true;
+}
+
+
+
+bool VoronoiDiagramCIC::ThisIsPossibleContainerReduction(Generator2D* reducedContainer, const CONTAINER_REDUCTION_CONSTRAINT& constraint)
+{
+    bool isContainerPossiblyReduced = true;
+
+    list<Generator2D*>::iterator i_gen;
+    for (i_gen = m_generators.begin(); i_gen != m_generators.end(); ++i_gen) {
+        Generator2D* currGenerator = *i_gen;
+
+        if (currGenerator == reducedContainer) {
+            continue;
+        }
+
+        double distanceBetweenCenterPoints = reducedContainer->getDisk().getCenterPt().distance(currGenerator->getDisk().getCenterPt());
+        bool deosCurrGeneratorSatisfyCondition = true;
+
+        switch (constraint) {
+        case STRONG_CONSTRAINT_INCLUDED:
+            if (distanceBetweenCenterPoints + currGenerator->getDisk().getRadius() >= reducedContainer->getDisk().getRadius()) {
+                deosCurrGeneratorSatisfyCondition = false;
+            }
+            break;
+
+        case WEEK_CONSTRAINT_AT_LEAST_INTERSECTED:
+            if (distanceBetweenCenterPoints >= currGenerator->getDisk().getRadius() + reducedContainer->getDisk().getRadius()) {
+                deosCurrGeneratorSatisfyCondition = false;
+            }
+            break;
+
+        default:
+            break;
+        }
+
+        if (!deosCurrGeneratorSatisfyCondition) {
+            isContainerPossiblyReduced = false;
+            break;
+        }
+    }
+
+    return isContainerPossiblyReduced;
+}
+
+
+
+void VoronoiDiagramCIC::collectPossiblyFlippingEdgesOnQuillEdgesOfContainer_reducing(Generator2D* container, rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges)
+{
+    list<VEdge2D*> boundaryEdges;
+    VFace2D* faceOfContainer = container->getInnerFace(); // bug fix: getOuterFace()->getInnerFace()
+    faceOfContainer->getBoundaryVEdges(boundaryEdges);
+
+    list<VEdge2D*>::iterator i_bndEdge;
+    for (i_bndEdge = boundaryEdges.begin(); i_bndEdge != boundaryEdges.end(); ++i_bndEdge) {
+        VEdge2D* currBndEdge = *i_bndEdge;
+        VEdge2D* currQuillEdge = NULL;
+
+        if (currBndEdge->getRightFace() == faceOfContainer) {
+            currQuillEdge = currBndEdge->getLeftHand();
+        }
+        else {
+            currQuillEdge = currBndEdge->getRightLeg();
+        }
+
+        rg_Circle2D circumcircle;
+        bool isFlippingEdge = isThisEdgeFlippingEdge_reducingContainer(currQuillEdge, faceOfContainer, circumcircle);
+        if (isFlippingEdge) {
+            possiblyFlippingEdges.add(pair<VEdge2D*, rg_Circle2D>(currQuillEdge, circumcircle));
+        }
+    }
+}
+
+
+
+bool VoronoiDiagramCIC::isThisEdgeFlippingEdge_reducingContainer(VEdge2D* edge, VFace2D* faceOfContainer, rg_Circle2D& circumcircle)
+{
+    // Anomaly case
+    if (getMatingFace(edge->getStartVertex(), edge) == faceOfContainer && getMatingFace(edge->getEndVertex(), edge) == faceOfContainer) {
+        return false;
+    }
+
+
+    bool currQuillEdgeStretchOutToContainerBoundary = false;
+    if (getMatingFace(edge->getStartVertex(), edge) == faceOfContainer) {
+        currQuillEdgeStretchOutToContainerBoundary = true;
+    }
+    else {
+        currQuillEdgeStretchOutToContainerBoundary = false;
+    }
+
+    //// Identical triplet case: possible
+    //if ( currQuillEdgeStretchOutToContainerBoundary ) {
+    //    if ( getMatingFace( edge->getStartVertex(), edge->getLeftLeg() ) == faceOfContainer ||
+    //        getMatingFace( edge->getStartVertex(), edge->getRightLeg() ) == faceOfContainer ) {
+    //        return false;
+    //    }
+    //}
+    //else {
+    //    if ( getMatingFace( edge->getEndVertex(), edge->getLeftHand() ) == faceOfContainer ||
+    //        getMatingFace( edge->getEndVertex(), edge->getRightHand() ) == faceOfContainer ) {
+    //        return false;
+    //    }
+    //}
+
+
+
+    Generator2D* focusGenerator = rg_NULL;
+    if (edge->getLeftFace()->getGenerator()->getDisk().getRadius() > edge->getRightFace()->getGenerator()->getDisk().getRadius()) {
+        focusGenerator = edge->getLeftFace()->getGenerator();
+    }
+    else {
+        focusGenerator = edge->getRightFace()->getGenerator();
+    }
+
+    bool boundaryVertex_and_stopVertex_have_to_be_switched_for_computing_angle = false;
+
+    VVertex2D* stopVertex = rg_NULL;
+    VVertex2D* currBoundaryVertex = rg_NULL;
+    if (currQuillEdgeStretchOutToContainerBoundary) {
+        circumcircle = edge->getStartVertex()->getCircumcircle();
+        stopVertex = edge->getStartVertex();
+        currBoundaryVertex = edge->getEndVertex();
+
+        if (focusGenerator != edge->getRightFace()->getGenerator()) {
+            boundaryVertex_and_stopVertex_have_to_be_switched_for_computing_angle = true;
+        }
+    }
+    else {
+        circumcircle = edge->getEndVertex()->getCircumcircle();
+        stopVertex = edge->getEndVertex();
+        currBoundaryVertex = edge->getStartVertex();
+
+        if (focusGenerator != edge->getLeftFace()->getGenerator()) {
+            boundaryVertex_and_stopVertex_have_to_be_switched_for_computing_angle = true;
+        }
+    }
+
+    updateCircumcircle(currBoundaryVertex);
+    rg_Point2D newCoordOfboundaryVertex = currBoundaryVertex->getLocation();
+    rg_Point2D focus = focusGenerator->getDisk().getCenterPt();
+    //rg_Point2D vecToBoundaryVertex = newCoordOfboundaryVertex - focus;
+    //rg_Point2D vecToStopVertex = stopVertex->getLocation() - focus;
+
+    rg_Point2D vecToStartPt, vecToEndPt;
+
+    if (!boundaryVertex_and_stopVertex_have_to_be_switched_for_computing_angle) {
+        vecToStartPt = newCoordOfboundaryVertex - focus;
+        vecToEndPt = stopVertex->getLocation() - focus;
+    }
+    else {
+        vecToStartPt = stopVertex->getLocation() - focus;
+        vecToEndPt = newCoordOfboundaryVertex - focus;
+    }
+
+    //rg_REAL z_value = vecToBoundaryVertex * vecToStopVertex;
+    rg_REAL z_value = vecToStartPt * vecToEndPt;
+
+    if (z_value < 0.0) {
+        return true;
+    }
+    else {
+        return false;
+    }
+
+    //if ( isThisCircumcircleInContainer( circumcircle, faceOfContainer->getGenerator() ) ) {
+    //    return false;
+    //}
+    //else {
+    //    return true;
+    //}
+}
+
+
+
+void VoronoiDiagramCIC::flipThisEdgeNFindTwoIncidentQuillEdges(VFace2D* faceOfContainer, VEdge2D* edgeToBeFlipped, VEdge2D*& incidentQuillEdge1, VEdge2D*& incidentQuillEdge2)
+{
+    edgeToBeFlipped->flip();
+
+    // compute tangent circle for contact map by Joonghyun March, 17
+    updateTangentCircleForContactMap(edgeToBeFlipped);
+    updateCircumcircle(edgeToBeFlipped->getStartVertex());
+    updateCircumcircle(edgeToBeFlipped->getEndVertex());
+
+    if (edgeToBeFlipped->getRightFace() == faceOfContainer) {
+        incidentQuillEdge1 = edgeToBeFlipped->getLeftLeg();
+        incidentQuillEdge2 = edgeToBeFlipped->getLeftHand();
+    }
+    else {
+        incidentQuillEdge1 = edgeToBeFlipped->getRightHand();
+        incidentQuillEdge2 = edgeToBeFlipped->getRightLeg();
+    }
+}
+
+
+
+void VoronoiDiagramCIC::reflectTheFlipOnTheIncidentQuillEdge_reducingContainer(rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges, VEdge2D*& edgeOfIncidentTriplet, VFace2D*& faceOfContainer)
+{
+    rg_dNode< pair<VEdge2D*, rg_Circle2D> >* updateNode = NULL;
+    rg_dNode< pair<VEdge2D*, rg_Circle2D> >* currNode = possiblyFlippingEdges.getFirstpNode();
+    for (int i = 0; i < possiblyFlippingEdges.getSize(); i++, currNode = currNode->getNext()) {
+        VEdge2D* currEdge = currNode->getpEntity()->first;
+
+        if (currEdge == edgeOfIncidentTriplet) {
+            updateNode = currNode;
+            break;
+        }
+    }
+
+    rg_Circle2D circumcircle;
+    bool isFlippingEdge = isThisEdgeFlippingEdge_reducingContainer(edgeOfIncidentTriplet, faceOfContainer, circumcircle);
+
+    if (isFlippingEdge) {
+        if (updateNode == NULL) {
+            possiblyFlippingEdges.add(pair<VEdge2D*, rg_Circle2D>(edgeOfIncidentTriplet, circumcircle));
+        }
+        else {
+            currNode->getpEntity()->second = circumcircle;
+        }
+    }
+    else {
+        if (updateNode != NULL) {
+            possiblyFlippingEdges.kill(updateNode);
+        }
+    }
+}
+
+
+
+bool VoronoiDiagramCIC::flippingTest_outside(VEdge2D* const outerBoundaryEdge, VFace2D* const faceToBeRemoved, list<Generator2D*>& outerNeighbor, rg_Circle2D& circumcircle)
+{
+    bool isThisFlippingEdge = isFlippingEdgeOnVirtualRegion(outerBoundaryEdge, circumcircle, faceToBeRemoved);
+
+
+    if (isThisFlippingEdge) {
+        for (list<Generator2D*>::iterator i_gen = outerNeighbor.begin(); i_gen != outerNeighbor.end(); ++i_gen) {
+            Generator2D* currGen = *i_gen;
+            rg_Circle2D  currDisk = currGen->getDisk();
+
+            double distanceC2C = currDisk.getCenterPt().distance(circumcircle.getCenterPt());
+            double distanceBetweenDisks = distanceC2C - currDisk.getRadius() - circumcircle.getRadius();
+
+            if (distanceBetweenDisks < 0.0) {
+                isThisFlippingEdge = false;
+                break;
+            }
+        }
+    }
+
+    return isThisFlippingEdge;
+}
+
+
+
+bool VoronoiDiagramCIC::flippingTest_inside(VEdge2D* const innerBoundaryEdge, VFace2D* const faceToBeRemoved, list<Generator2D*>& innerNeighbor, rg_Circle2D& circumcircle)
+{
+    bool isThisFlippingEdge = isFlippingEdgeOnVirtualRegion(innerBoundaryEdge, circumcircle, faceToBeRemoved);
+
+    if (isThisFlippingEdge) {
+        for (list<Generator2D*>::iterator i_gen = innerNeighbor.begin(); i_gen != innerNeighbor.end(); ++i_gen) {
+            Generator2D* currGen = *i_gen;
+            rg_Circle2D  currDisk = currGen->getDisk();
+
+            double distanceC2C = currDisk.getCenterPt().distance(circumcircle.getCenterPt());
+            double distanceBetweenDisks = distanceC2C - currDisk.getRadius() - circumcircle.getRadius();
+
+            if (distanceBetweenDisks < 0.0) {
+                isThisFlippingEdge = false;
+                break;
+            }
+        }
+    }
+
+    return isThisFlippingEdge;
+}
+
+
+
+void VoronoiDiagramCIC::reflectTheFlipOnTheIncidentTriplet_nutBreaking(rg_dList<pair<VEdge2D*, rg_Circle2D>>& possiblyFlippingEdges, VEdge2D*& edgeOfIncidentTriplet, list<Generator2D*>& outerNeighbor, VFace2D* faceToBeRemoved)
+{
+    rg_dNode< pair<VEdge2D*, rg_Circle2D> >* updateNode = NULL;
+    rg_dNode< pair<VEdge2D*, rg_Circle2D> >* currNode = possiblyFlippingEdges.getFirstpNode();
+    for (int i = 0; i < possiblyFlippingEdges.getSize(); i++, currNode = currNode->getNext()) {
+        VEdge2D* currEdge = currNode->getpEntity()->first;
+
+        if (currEdge == edgeOfIncidentTriplet) {
+            updateNode = currNode;
+            break;
+        }
+    }
+
+    rg_Circle2D circumcircle;
+    bool isThisFlippingEdge = isFlippingEdgeOnVirtualRegion(edgeOfIncidentTriplet, circumcircle, faceToBeRemoved);
+
+    if (isThisFlippingEdge) {
+        for (list<Generator2D*>::iterator i_gen = outerNeighbor.begin(); i_gen != outerNeighbor.end(); ++i_gen) {
+            Generator2D* currGen = *i_gen;
+            rg_Circle2D  currDisk = currGen->getDisk();
+
+            double distanceC2C = currDisk.getCenterPt().distance(circumcircle.getCenterPt());
+            double distanceBetweenDisks = distanceC2C - currDisk.getRadius() - circumcircle.getRadius();
+
+            if (distanceBetweenDisks < 0.0) {
+                isThisFlippingEdge = false;
+                break;
+            }
+        }
+    }
+
+    if (isThisFlippingEdge) {
+        if (updateNode == NULL) {
+            possiblyFlippingEdges.add(pair<VEdge2D*, rg_Circle2D>(edgeOfIncidentTriplet, circumcircle));
+        }
+        else {
+            currNode->getpEntity()->second = circumcircle;
+        }
+    }
+    else {
+        if (updateNode != NULL) {
+            possiblyFlippingEdges.kill(updateNode);
+        }
+    }
+}
+
+
+
+Generator2D* VoronoiDiagramCIC::findGeneratorWhichBlockThisEdge(VEdge2D* const edge, VFace2D* const nutFace, list<Generator2D*>& boundaryGen, rg_Circle2D& circumcircle)
+{
+    VVertex2D* start_CCW = NULL;
+    VVertex2D* nutVertex = NULL;
+    rg_Point2D focus;
+
+    VFace2D* prevFace = NULL;
+    VFace2D* nextFace = NULL;
+
+    if (edge->getMateFace(edge->getStartVertex()) == nutFace) {
+        start_CCW = edge->getStartVertex();
+        nutVertex = edge->getEndVertex();
+        focus = edge->getLeftFace()->getGenerator()->getDisk().getCenterPt();
+
+        prevFace = edge->getLeftFace();
+        nextFace = edge->getRightFace();
+    }
+    else {
+        start_CCW = edge->getEndVertex();
+        nutVertex = edge->getStartVertex();
+        focus = edge->getRightFace()->getGenerator()->getDisk().getCenterPt();
+
+        prevFace = edge->getRightFace();
+        nextFace = edge->getLeftFace();
+    }
+
+
+
+    double minAngle = DBL_MAX;
+    Generator2D* blockingGen = NULL;
+
+    for (list<Generator2D*>::iterator i_boundaryGen = boundaryGen.begin(); i_boundaryGen != boundaryGen.end(); ++i_boundaryGen) {
+        Generator2D* currGen = *i_boundaryGen;
+        rg_Circle2D circle[3] = { edge->getLeftFace()->getGenerator()->getDisk(), edge->getRightFace()->getGenerator()->getDisk(), currGen->getDisk() };
+        rg_Circle2D circumcircles[2];
+        int numCC = 0;
+
+        VFace2D* blockingFace = NULL;
+        if (currGen == m_containerGenerator) {
+            blockingFace = currGen->getInnerFace();
+        }
+        else {
+            blockingFace = currGen->getOuterFace();
+        }
+
+        if (edge->getLeftFace()->getGenerator() == m_containerGenerator) {
+            calculateTangentCircles(circle[0], circle[1], circle[2], circumcircles[0], circumcircles[1]);
+            numCC = 2;
+        }
+        else if (edge->getRightFace()->getGenerator() == m_containerGenerator) {
+            calculateTangentCircles(circle[1], circle[0], circle[2], circumcircles[0], circumcircles[1]);
+            numCC = 2;
+        }
+        else if (currGen == m_containerGenerator) {
+            calculateTangentCircles(circle[2], circle[0], circle[1], circumcircles[0], circumcircles[1]);
+            numCC = 2;
+        }
+        else {
+            numCC = rg_Circle2D::makeCircumcircle(circle[0], circle[1], circle[2], circumcircles[0], circumcircles[1]);
+        }
+
+
+        rg_Circle2D circleForTest[3] = { prevFace->getGenerator()->getDisk(), nextFace->getGenerator()->getDisk(), blockingFace->getGenerator()->getDisk() };
+
+        rg_Point2D vec1 = circleForTest[0].getCenterPt() - circumcircles[0].getCenterPt();
+        rg_Point2D vec2 = circleForTest[1].getCenterPt() - circumcircles[0].getCenterPt();
+        rg_Point2D vec3 = circleForTest[2].getCenterPt() - circumcircles[0].getCenterPt();
+
+        if (prevFace->getGenerator() == m_containerGenerator)
+            vec1 = -1.0 * vec1;
+        if (nextFace->getGenerator() == m_containerGenerator)
+            vec2 = -1.0 * vec2;
+        if (blockingFace->getGenerator() == m_containerGenerator)
+            vec3 = -1.0 * vec3;
+
+        double angle12 = angleFromVec1toVec2(vec1, vec2);
+        double angle13 = angleFromVec1toVec2(vec1, vec3);
+
+
+        rg_Circle2D currCircumcircle;
+        switch (numCC)
+        {
+        case 1:
+            //if ( isCorrectCircumcircle( circumcircles[0], prevFace, nextFace, blockingFace ) ) {
+            currCircumcircle = circumcircles[0];
+            //}
+            //else {
+            //    continue;
+            //}
+            break;
+
+        case 2:
+            //if ( isCorrectCircumcircle( circumcircles[0], prevFace, nextFace, blockingFace ) ) {
+            if (angle12 < angle13) {
+                currCircumcircle = circumcircles[0];
+            }
+            else {
+                currCircumcircle = circumcircles[1];
+            }
+            break;
+
+        default:
+            continue;
+        }
+
+        rg_Point2D vec_start = start_CCW->getLocation() - prevFace->getGenerator()->getDisk().getCenterPt();
+        rg_Point2D vec_circumcircle = currCircumcircle.getCenterPt() - prevFace->getGenerator()->getDisk().getCenterPt();
+
+        if (prevFace->getGenerator() == m_containerGenerator) {
+            rg_Point2D tempPt = vec_start;
+            vec_start = vec_circumcircle;
+            vec_circumcircle = tempPt;
+        }
+        double currAngle = angleFromVec1toVec2(vec_start, vec_circumcircle);
+
+        if (currAngle < minAngle) {
+            minAngle = currAngle;
+            blockingGen = currGen;
+            circumcircle = currCircumcircle;
+        }
+    }
+
+    return blockingGen;
+}
+
+

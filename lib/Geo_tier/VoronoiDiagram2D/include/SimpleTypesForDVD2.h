@@ -1,0 +1,229 @@
+#ifndef _SIMPLE_TYPES_FOR_DVD2_
+#define _SIMPLE_TYPES_FOR_DVD2_
+
+#include "rg_Circle2D.h"
+#include "rg_Point2D.h"
+#include "DynamicDisk.h"
+#include "EntityAccessiblePriorityQ.h"
+#include "Generator2D.h"
+#include <cstdlib>
+#include <functional>
+using namespace std;
+
+
+namespace V {
+namespace GeometryTier {
+
+
+typedef unsigned int ReservationNumber;
+typedef pair<Generator2D*, rg_Point2D> VelocityVectorChange;
+
+template <class T>
+static inline void hash_combiner(std::size_t& seed, const T& v)
+{
+    std::hash<T> hasher;
+    seed ^= hasher(v) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+};
+
+struct Pointer_N_Point2D_pair_hash {
+    template <class T>
+    std::size_t operator () (const std::pair<T, rg_Point2D>& p) const {
+        size_t seed = 0;
+        hash_combiner(seed, p.first);
+        hash_combiner(seed, p.second.getX());
+        hash_combiner(seed, p.second.getY());
+        return seed;
+    }
+};
+
+struct Pointer_N_Point2D_pair_Equality_Pred {
+    template <class T>
+    bool operator () (const std::pair<T, rg_Point2D>& p, const std::pair<T, rg_Point2D>& q) const
+    {
+        if (p.first == q.first && p.second == q.second)
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+};
+
+template<typename T> using EntityAccessiblePriorityQ_
+= EntityAccessiblePriorityQ<T, less<PQ_Node<T>>,
+    Pointer_N_Point2D_pair_hash,
+    Pointer_N_Point2D_pair_Equality_Pred>;
+
+
+enum EdgeFlippingFormulaGeneratingType { FOR_FINDING_TIME, FOR_VERIFING_TIME };
+enum PriorityQBookkeepingType { DURING_INITIAL_PQ_CONSTRUCTION, AFTER_PQ_CONSTRUCTION };
+enum TimeProgressDirectionType { TO_FUTURE, TO_PAST, NONE_DIRECTION };
+enum TimeStatisticsType { PHASE1_COMP_TIME, PHASE1_COLLISION_AVOIDANCE_TIME, PHASE2_COMP_TIME, PHASE2_MOVING_DISKS_TIME, PHASE2_UPDATING_TOPOLOGY_TIME, PHASE2_UPDATING_GEOMETRY_TIME, PHASE2_SIMULATION_TIME_INCREMNT, DVD_TIME_STATISTICS_SIZE };
+enum CountStatisticsType { PHASE1_COUNT, PHASE2_FLIPPING_COUNT, PHASE2_COLLISION_COUNT, PHASE2_COLLISION_BTW_DISKS_COUNT, PHASE2_VELOCITY_CHANGE_COUNT, PHASE2_DISK_HOPPING_COUNT, DVD_COUNT_STATISTICS_SIZE };
+enum PolynomialSolverType { LABSRC, JENKINS_TRAUB, STURMS_SEQ };
+enum DynamicVDAlgorithmPhase1
+{
+    DVD_TIME_PHASE_ONE_TOTAL,
+    DVD_TIME_CONSTRUCT_INITIAL_CIC_VD,
+    DVD_TIME_CHECK_WHETHER_DISKS_ARE_INTERSECTED,
+    DVD_TIME_CONSTRUCT_INITIAL_PRIORITY_QS_FOR_FLIPPING_AND_COLLISION_EVENTS,
+    DVD_TIME_CONSTRUCT_INITIAL_PRIORITY_Q_OF_VEDGE_FLIPPING_TIME,
+    DVD_TIME_CONSTRUCT_INITIAL_PRIORITY_Q_OF_DISK_COLLISION_TIME,
+    DVD_TIME_PROPAGATE_DVD_OVER_LENGTH_OF_VORONOI_CLOCK,
+    DVD_TIME_REINSTATE_THE_INITIAL_VORONOI_DIAGRAM,
+    /*Below this line, these are not directly related to the algorithm steps*/
+    DVD_TIME_FIND_POSSIBLE_FLIPPING_TIME_OF_EDGE,
+    DVD_TIME_GET_4DISKS_DEFINING_VEDGE,
+    DVD_TIME_SORTING_GENERATORS_IN_NON_INCRESING_ORDER,
+    DVD_TIME_MAKING_EDGE_FLIPPING_POLYNOMIAL_EQ,
+    DVD_TIME_SOLVING_EDGE_FLIPPING_POLYNOMIAL_EQ,
+    DVD_TIME_FIND_POSSIBLE_COLLISION_TIME_OF_DISKS,
+    DVD_TIME_DISK_HOPPING,
+    DVD_TIME_PRIORITYS_BOOKKEEPING,
+    DVD_TIME_PRIORITY_BOOKKEEPING_FOR_EDGE_FLIPPING,
+    DVD_TIME_PRIORITY_BOOKKEEPING_FOR_DISK_COLLISION,
+    DVD_TIME_PRIORITY_BOOKKEEPING_FOR_VELOCITY_CHANGE,
+    DVD_TIME_DISK_MOVING,
+    DVD_TIME_SIZE_PHASE_ONE
+};
+
+enum DynamicVDInterestingSubject
+{
+    DVD_COUNT_EDGE_FLIPPING_IN_EVENT_HISTORY,
+    DVD_COUNT_DISK_COLLISION_IN_EVENT_HISTORY,
+    DVD_COUNT_DISK_COLLISION_BTW_INPUT_DISKS_NOT_WITH_CONTAINER_IN_EVENT_HISTORY,
+    DVD_COUNT_DISK_VELOCITY_CHANGE_IN_EVENT_HISTORY,
+    DVD_COUNT_DISK_HOPPING_IN_EVENT_HISTORY,
+    DVD_COUNT_REAL_OCCURING_DELETE_N_INSERT_DISK_IN_EVENT_HISTORY,
+    DVD_COUNT_EDGE_FLIPPING_IN_COMPUTATION,
+    DVD_COUNT_DISK_COLLISION_IN_COMPUTATION,
+    DVD_COUNT_DISK_VELOCITY_CHANGE_IN_COMPUTATION,
+    DVD_COUNT_DELETE_N_INSERT_DISK_IN_COMPUTATION,
+    DVD_COUNT_2_IDENTICAL_FLIPPING_TIME,
+    DVD_COUNT_3_IDENTICAL_FLIPPING_TIME,
+    DVD_COUNT_4_IDENTICAL_FLIPPING_TIME,
+    DVD_COUNT_5_IDENTICAL_FLIPPING_TIME,
+    DVD_COUNT_SHADOW_FLIPPING,
+    DVD_COUNT_ORDINARY_FLIPPING,
+    DVD_COUNT_3_TO_2_FLIPPING,
+    DVD_COUNT_24_TO_33_FLIPPING,
+    DVD_COUNT_33_TO_24_FLIPPING,
+    DVD_COUNT_33_TO_22_FLIPPING,
+    DVD_COUNT_DEGREE0_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE1_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE2_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE3_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE4_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE5_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE6_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE7_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_DEGREE8_POLYNOMIAL_FOR_EDGE_FLIPPING,
+    DVD_COUNT_ALL_DIFFERENT_VELOCITY_VECTOR,
+    DVD_COUNT_2_SAME_VELOCITY_VECTOR,
+    DVD_COUNT_3_SAME_VELOCITY_VECTOR,
+    DVD_COUNT_4_SAME_VELOCITY_VECTOR,
+    DVD_COUNT_2_2_SAME_VELOCITY_VECTOR,
+    DVD_COUNT_DEGREE_REDUCING,
+    DVD_COUNT_SIZE_PHASE_ONE
+};
+
+enum RootTypeOfPolynomial
+{    
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_0,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_1,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_2,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_3,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_4,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_5,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_6,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_7,
+    POLY_ROOT_COUNT_NUM_OF_REAL_ROOT_8,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_0,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_1,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_2,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_3,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_4,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_5,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_6,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_7,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_8,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_0,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_1,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_2,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_3,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_4,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_5,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_6,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_7,
+    POLY_ROOT_COUNT_NUM_OF_POSITIVE_REAL_ROOT_SATIFYING_INEQUALITY_8,
+    POLY_ROOT_COUNT_SIZE
+};
+
+enum DynamicVDCollisionAvoidance
+{
+    DVD_COL_AVD_TOTAL,
+    DVD_COL_AVD_SIZE
+};
+
+enum DVD_StatusOfTwoDisks { DISK_N_DISK, DISK_N_CONTAINER, CONTAINER_N_DISK, CONTAINER_N_CONTAINER };
+
+enum DVD_VEdgeStatus { NEW_EDGE, DELETED_EDGE, REDEFINED_EDGE, NONE_BUT_DISK_VEl_VEC_CHANGED };
+
+
+
+enum DynamicVDSimulatorPhase
+{
+    DVDS_TIME_LOAD_DISKS,
+    DVDS_TIME_WRITE_EVENTSEQ,
+    DVDS_TIME_LOAD_EVENTSEQ,
+    DVDS_TIME_CHECK_WHETHER_DISKS_ARE_INTERSECTED,
+    DVDS_TIME_SIZE
+};
+
+
+
+static DVD_StatusOfTwoDisks find_state_of_two_disks(DynamicDisk* movingDisk1, DynamicDisk* movingDisk2)
+{
+    if (!movingDisk1->this_disk_is_container() && !movingDisk2->this_disk_is_container())
+    {
+        return DISK_N_DISK;
+    }
+    else if (!movingDisk1->this_disk_is_container() && movingDisk2->this_disk_is_container()) //Assume movingDisk1 in movingDisk2
+    {
+        return DISK_N_CONTAINER;
+    }
+    else if (movingDisk1->this_disk_is_container() && !movingDisk2->this_disk_is_container()) //Assume movingDisk2 in movingDisk1
+    {
+        return CONTAINER_N_DISK;
+    }
+    else //Assume both movingDisk1 and movingDisk2 are container.
+    {
+        return CONTAINER_N_CONTAINER;
+    }
+};
+
+
+static bool there_is_intersection_btw(const rg_Circle2D& disk1, const rg_Circle2D& disk2, const double& tolerance)
+{
+    double distanceOfCircleCenters = disk1.getCenterPt().distance(disk2.getCenterPt());
+    double sumOfRadius = disk1.getRadius() + disk2.getRadius();
+
+    if (distanceOfCircleCenters < sumOfRadius - tolerance)
+    {
+        return true;
+    }
+    else
+    {
+        return false;
+    }
+};
+
+
+}
+}
+
+
+#endif // _SIMPLE_TYPES_FOR_DYNAMIC_VORONOI_DIAGRAM_CIC_
+

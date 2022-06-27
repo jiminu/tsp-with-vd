@@ -1,0 +1,704 @@
+#include "VEdge2D.h"
+#include "VVertex2D.h"
+#include "VFace2D.h"
+#include "Generator2D.h"
+using namespace V::GeometryTier;
+
+#include "rg_Line2D.h"
+#include <cfloat>
+
+VEdge2D::VEdge2D()
+{
+    m_ID            = -1;
+    m_startVertex   = NULL;
+    m_endVertex     = NULL;
+    m_leftFace      = NULL;
+    m_rightFace     = NULL;
+    m_leftHand      = NULL;
+    m_rightHand     = NULL;
+    m_leftLeg       = NULL;
+    m_rightLeg      = NULL;
+    m_status        = WHITE_E;
+    m_isAnomalyTestDone = false;
+    m_isCandidateToBeFlippedInPhantomRemoval = false;
+    m_minClearance  = 0.0;
+    m_maxClearance  = 0.0;
+    m_isThereContactBetweenTwoGenerators = false;
+    m_isVisited     = false;
+    m_radiusIntervalIsCalculated = false;
+}
+
+
+
+VEdge2D::VEdge2D( const int& ID )
+{
+    m_ID            = ID;
+    m_startVertex   = NULL;
+    m_endVertex     = NULL;
+    m_leftFace      = NULL;
+    m_rightFace     = NULL;
+    m_leftHand      = NULL;
+    m_rightHand     = NULL;
+    m_leftLeg       = NULL;
+    m_rightLeg      = NULL;
+    m_status        = WHITE_E;
+    m_isAnomalyTestDone = false;
+    m_isCandidateToBeFlippedInPhantomRemoval = false;
+    m_minClearance  = 0.0;
+    m_maxClearance  = 0.0;
+    m_isThereContactBetweenTwoGenerators = false;
+    m_isVisited     = false;
+    m_radiusIntervalIsCalculated = false;
+}
+
+
+
+VEdge2D::VEdge2D( const int& ID, VVertex2D* const startVertex, VVertex2D* const endVertex )
+{
+    m_ID            = ID;
+    m_startVertex   = startVertex;
+    m_endVertex     = endVertex;
+    m_leftFace      = NULL;
+    m_rightFace     = NULL;
+    m_leftHand      = NULL;
+    m_rightHand     = NULL;
+    m_leftLeg       = NULL;
+    m_rightLeg      = NULL;
+    m_status        = WHITE_E;
+    m_isAnomalyTestDone = false;
+    m_isCandidateToBeFlippedInPhantomRemoval = false;
+    m_minClearance  = 0.0;
+    m_maxClearance  = 0.0;
+    m_isThereContactBetweenTwoGenerators = false;
+    m_isVisited     = false;
+    m_radiusIntervalIsCalculated = false;
+}
+
+
+
+VEdge2D::VEdge2D( const VEdge2D& edge )
+{
+    m_ID            = edge.m_ID;
+    m_startVertex   = edge.m_startVertex;
+    m_endVertex     = edge.m_endVertex;
+    m_leftFace      = edge.m_leftFace;
+    m_rightFace     = edge.m_rightFace;
+    m_leftHand      = edge.m_leftHand;
+    m_rightHand     = edge.m_rightHand;
+    m_leftLeg       = edge.m_leftLeg;
+    m_rightLeg      = edge.m_rightLeg;
+    m_status        = edge.m_status;
+    m_isAnomalyTestDone = edge.m_isAnomalyTestDone;
+    m_isCandidateToBeFlippedInPhantomRemoval = edge.m_isCandidateToBeFlippedInPhantomRemoval;
+    m_minClearance  = edge.m_minClearance;
+    m_maxClearance  = edge.m_maxClearance;
+    m_isThereContactBetweenTwoGenerators = edge.m_isThereContactBetweenTwoGenerators;
+    m_isVisited     = edge.m_isVisited;
+    m_radiusIntervalIsCalculated = edge.m_radiusIntervalIsCalculated;
+}
+
+
+
+VEdge2D::~VEdge2D()
+{
+}
+
+
+
+void VEdge2D::setGeometry( const rg_Point2D& sp, const rg_Point2D& tvs, const rg_Point2D& ep, const rg_Point2D& tve, const rg_Point2D& passPt )
+{
+    m_geometry.makeRQBezier(sp, tvs, ep, tve, passPt);
+
+    rg_Point2D vector1 = (ep-sp).getUnitVector();
+    rg_Point2D vector2 = (passPt-sp).getUnitVector();
+
+
+    if( m_geometry.getWeight(1) >= 1. )
+        return;
+
+    if( m_geometry.getWeight(1) < -1. )
+    {
+        m_geometry.setWeight( 1, m_geometry.getWeight(1) * -1. );
+    }
+    else if( m_leftFace->getGenerator()->getDisk().getRadius() < m_rightFace->getGenerator()->getDisk().getRadius() )
+    {
+        if( vector1*vector2 > 0. )
+        {
+            m_geometry.setWeight( 1, m_geometry.getWeight(1) * -1. );
+        }
+    }
+    else
+    {
+        if( vector1*vector2 < 0. )
+        {
+            m_geometry.setWeight( 1, m_geometry.getWeight(1) * -1. );
+        }
+    }
+}
+
+
+
+void VEdge2D::setGeometryLine()
+{
+    rg_Point2D ctrlPt0 = m_startVertex->getLocation();
+    rg_Point2D ctrlPt2 = m_endVertex->getLocation();
+    rg_Point2D ctrlPt1 = (ctrlPt0 + ctrlPt2)/2.;
+
+    m_geometry.setCtrlPt( 0, ctrlPt0 );
+    m_geometry.setCtrlPt( 1, ctrlPt1 );
+    m_geometry.setCtrlPt( 2, ctrlPt2 );
+    m_geometry.setWeight(0, 1.);
+    m_geometry.setWeight(1, 1.);
+    m_geometry.setWeight(2, 1.);
+}
+
+
+
+VEdge2D& VEdge2D::operator=( const VEdge2D& edge )
+{
+    if( this == &edge ) {
+        return *this;
+    }
+
+    m_ID            = edge.m_ID;
+    m_startVertex   = edge.m_startVertex;
+    m_endVertex     = edge.m_endVertex;
+    m_leftFace      = edge.m_leftFace;
+    m_rightFace     = edge.m_rightFace;
+    m_leftHand      = edge.m_leftHand;
+    m_rightHand     = edge.m_rightHand;
+    m_leftLeg       = edge.m_leftLeg;
+    m_rightLeg      = edge.m_rightLeg;
+    m_status        = edge.m_status;
+    m_isAnomalyTestDone = edge.m_isAnomalyTestDone;
+    m_isCandidateToBeFlippedInPhantomRemoval = edge.m_isCandidateToBeFlippedInPhantomRemoval;
+    m_minClearance  = edge.m_minClearance;
+    m_maxClearance  = edge.m_maxClearance;
+    m_isThereContactBetweenTwoGenerators = edge.m_isThereContactBetweenTwoGenerators;
+    m_isVisited     = edge.m_isVisited;
+    m_radiusIntervalIsCalculated = edge.m_radiusIntervalIsCalculated;
+    return *this;
+}
+
+
+
+
+bool VEdge2D::operator==( const VEdge2D& edge ) const
+{
+    if( this == &edge ) {
+        return true;
+    }
+
+    if( m_rightHand == edge.m_rightHand &&
+        m_leftHand == edge.m_leftHand &&
+        m_rightLeg == edge.m_rightLeg &&
+        m_leftLeg == edge.m_leftLeg &&
+        m_leftFace == edge.m_leftFace &&
+        m_rightFace == edge.m_rightFace &&
+        m_startVertex == edge.m_startVertex &&
+        m_endVertex == edge.m_endVertex &&
+        m_ID == edge.m_ID &&
+        m_status == edge.m_status &&
+        m_isAnomalyTestDone == edge.m_isAnomalyTestDone &&
+        m_isCandidateToBeFlippedInPhantomRemoval == edge.m_isCandidateToBeFlippedInPhantomRemoval &&
+        m_isVisited == edge.m_isVisited )
+    {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+
+void VEdge2D::getIncidentVVertices( list<VVertex2D*>& incidentVVerticesList ) const
+{
+    incidentVVerticesList.push_back( m_startVertex );
+    incidentVVerticesList.push_back( m_endVertex );
+}
+
+
+
+void VEdge2D::getIncidentVFaces( list<VFace2D*>& incidentVFacesList ) const
+{
+    incidentVFacesList.push_back( m_leftFace );
+    incidentVFacesList.push_back( m_rightFace );
+}
+
+
+
+void VEdge2D::getAdjacentVEdges( list<VEdge2D*>& adjacentVEdgesList ) const
+{
+    adjacentVEdgesList.push_back( m_rightHand );
+    adjacentVEdgesList.push_back( m_leftHand );
+    adjacentVEdgesList.push_back( m_leftLeg );
+    adjacentVEdgesList.push_back( m_rightLeg );
+}
+
+
+
+
+VVertex2D* VEdge2D::getOppositVVertex( VVertex2D* vertex ) const
+{
+    if( vertex == m_startVertex ) {
+        return m_endVertex;
+    }
+    else if( vertex == m_endVertex ) {
+        return m_startVertex;
+    }
+    else {
+        return NULL;
+    }
+}
+
+
+
+void VEdge2D::setTopology( VVertex2D* const startVertex, VVertex2D* const endVertex, 
+                           VFace2D* const leftFace, VFace2D* const rightFace, 
+                           VEdge2D* const leftHand, VEdge2D* const rightHand, 
+                           VEdge2D* const leftLeg, VEdge2D* const rightLeg )
+{
+    m_startVertex   = startVertex;
+    m_endVertex     = endVertex;
+    m_leftFace      = leftFace;
+    m_rightFace     = rightFace;
+    m_leftHand      = leftHand;
+    m_rightHand     = rightHand;
+    m_leftLeg       = leftLeg;
+    m_rightLeg      = rightLeg;
+}
+
+
+
+void VEdge2D::setTopology( VFace2D* const leftFace, VFace2D* const rightFace, 
+                           VEdge2D* const leftHand, VEdge2D* const rightHand, 
+                           VEdge2D* const leftLeg, VEdge2D* const rightLeg )
+{
+    m_leftFace      = leftFace;
+    m_rightFace     = rightFace;
+    m_leftHand      = leftHand;
+    m_rightHand     = rightHand;
+    m_leftLeg       = leftLeg;
+    m_rightLeg      = rightLeg;
+}
+
+
+
+void VEdge2D::setTopology( VEdge2D* const leftHand, VEdge2D* const rightHand, 
+                           VEdge2D* const leftLeg, VEdge2D* const rightLeg )
+{
+    m_leftHand      = leftHand;
+    m_rightHand     = rightHand;
+    m_leftLeg       = leftLeg;
+    m_rightLeg      = rightLeg;
+}
+
+
+
+bool VEdge2D::isInfinite() const
+{
+    if( m_leftFace->isInfinite() || m_rightFace->isInfinite() ) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+
+bool VEdge2D::isBounded() const
+{
+    if( isInfinite() ) {
+        return false;
+    }
+
+
+    if( m_startVertex->isInfinite() || m_endVertex->isInfinite() ) {
+        return false;
+    }
+    else {
+        return true;
+    }
+}
+
+
+
+bool VEdge2D::isUnBounded() const
+{
+    if( isInfinite() ) {
+        return false;
+    }
+
+
+    if( m_startVertex->isInfinite() || m_endVertex->isInfinite() ) {
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
+
+
+bool VEdge2D::isMemberOf( const VFace2D* const face ) const
+{
+    bool ret = false;
+    if ( m_leftFace == face || m_rightFace == face ) {
+        ret = true;
+    }
+
+    return ret;
+}
+
+
+
+bool VEdge2D::isAdjacentTo( const VEdge2D* const edge ) const
+{
+    bool ret = false;
+    if ( m_leftHand == edge || m_rightHand == edge || m_leftLeg == edge || m_rightLeg == edge ) {
+        ret = true;
+    }
+
+    return ret;
+}
+
+
+
+bool VEdge2D::isIncidentTo( const VVertex2D* const vertex ) const
+{
+    bool ret = false;;
+    if ( m_startVertex == vertex || m_endVertex == vertex ) {
+        ret = true;
+    }
+
+    return ret;
+}
+
+
+
+void VEdge2D::flip()
+{
+    VEdge2D*    RH = m_rightHand;
+    VEdge2D*    LH = m_leftHand;
+    VEdge2D*    RL = m_rightLeg;
+    VEdge2D*    LL = m_leftLeg;
+
+    VVertex2D*  SV = m_startVertex;
+    VVertex2D*  EV = m_endVertex;
+
+    VFace2D*    RF = m_rightFace;
+    VFace2D*    LF = m_leftFace;
+
+    //move first edge on two faces
+    if( this == m_leftFace->getFirstVEdge() )	{
+        if( LH != NULL) {
+            m_leftFace->setFirstVEdge( LH );
+        }
+        else if(LL != NULL) {
+            m_leftFace->setFirstVEdge( LL );
+        }
+        else {
+            return;
+        }
+    }
+
+    if( this == m_rightFace->getFirstVEdge() ) {
+        if(RH != NULL) {
+            m_rightFace->setFirstVEdge( RH );
+        }
+        else if(RL != NULL) {
+            m_rightFace->setFirstVEdge( RL );
+        }
+        else {
+            return; //error
+        }
+    }
+
+    //move first edge on two vertices (start/end)
+    SV->setFirstVEdge( this );
+    EV->setFirstVEdge( this );
+
+    //change vertex(start or end) of incident edges
+    //left hand and right leg does not change start or end vertex
+    if(RH->getStartVertex() == EV)
+    {
+        RH->setStartVertex( SV );
+
+        RH->setRightLeg( RL );
+        RH->setLeftLeg( this );
+    }
+    else //end
+    {
+        RH->setEndVertex( SV );
+
+        RH->setRightHand( this );
+        RH->setLeftHand( RL );
+    }
+
+    if(LL->getStartVertex() == SV)
+    {
+        LL->setStartVertex( EV );
+
+        LL->setRightLeg( LH );
+        LL->setLeftLeg( this );
+    }
+    else
+    {
+        LL->setEndVertex( EV );
+
+        LL->setRightHand( this );
+        LL->setLeftHand( LH );
+    }
+
+    if( RL->getStartVertex() == SV )
+    {
+        RL->setRightLeg( this );
+        RL->setLeftLeg( RH );
+    }
+    else
+    {
+        RL->setRightHand( RH );
+        RL->setLeftHand( this );
+    }
+
+    if( LH->getStartVertex() == EV )
+    {
+        LH->setRightLeg( this );
+        LH->setLeftLeg( LL );
+    }
+    else
+    {
+        LH->setRightHand( LL );
+        LH->setLeftHand( this );
+    }
+
+    //change right and left face
+    if( LF == LH->getLeftFace() ) {
+        m_rightFace = LH->getRightFace();
+    }
+    else {
+        m_rightFace = LH->getLeftFace();
+    }
+
+    if( RF == RL->getRightFace() ) {
+        m_leftFace = RL->getLeftFace();
+    }
+    else {
+        m_leftFace = RL->getRightFace();
+    }
+
+    //update topology of two legs and two hands
+    m_rightHand = LH;
+    m_leftHand  = LL;
+    m_rightLeg  = RH;
+    m_leftLeg   = RL;
+}
+
+
+
+void VEdge2D::flip_reverse()
+{
+    VEdge2D*    RH = m_rightHand;
+    VEdge2D*    LH = m_leftHand;
+    VEdge2D*    RL = m_rightLeg;
+    VEdge2D*    LL = m_leftLeg;
+
+    VVertex2D*  SV = m_startVertex;
+    VVertex2D*  EV = m_endVertex;
+
+    VFace2D*    RF = m_rightFace;
+    VFace2D*    LF = m_leftFace;
+
+    //move first edge on two faces
+    if (this == m_leftFace->getFirstVEdge()) {
+        if (LH != NULL) {
+            m_leftFace->setFirstVEdge(LH);
+        }
+        else if (LL != NULL) {
+            m_leftFace->setFirstVEdge(LL);
+        }
+        else {
+            return;
+        }
+    }
+
+    if (this == m_rightFace->getFirstVEdge()) {
+        if (RH != NULL) {
+            m_rightFace->setFirstVEdge(RH);
+        }
+        else if (RL != NULL) {
+            m_rightFace->setFirstVEdge(RL);
+        }
+        else {
+            return; //error
+        }
+    }
+
+    //move first edge on two vertices (start/end)
+    SV->setFirstVEdge(this);
+    EV->setFirstVEdge(this);
+
+
+    //change vertex(start or end) of incident edges
+    //left leg and right hand does not change start or end vertex
+    if (RL->getStartVertex() == SV)
+    {
+        RL->setStartVertex(EV);
+
+        RL->setRightLeg(this);
+        RL->setLeftLeg(RH);
+    }
+    else //end
+    {
+        RL->setEndVertex(EV);
+
+        RL->setRightHand(RH);
+        RL->setLeftHand(this);
+    }
+
+    if (LH->getStartVertex() == EV)
+    {
+        LH->setStartVertex(SV);
+
+        LH->setRightLeg(this);
+        LH->setLeftLeg(LL);
+    }
+    else
+    {
+        LH->setEndVertex(SV);
+
+        LH->setRightHand(LL);
+        LH->setLeftHand(this);
+    }
+
+    if (LL->getStartVertex() == SV)
+    {
+        LL->setRightLeg(LH);
+        LL->setLeftLeg(this);
+    }
+    else
+    {
+        LL->setRightHand(this);
+        LL->setLeftHand(LH);
+    }
+
+    if (RH->getStartVertex() == EV)
+    {
+        RH->setRightLeg(RL);
+        RH->setLeftLeg(this);
+    }
+    else
+    {
+        RH->setRightHand(this);
+        RH->setLeftHand(RL);
+    }
+
+    //change right and left face
+    if (LF == LH->getLeftFace()) {
+        m_leftFace = LH->getRightFace();
+    }
+    else {
+        m_leftFace = LH->getLeftFace();
+    }
+
+    if (RF == RL->getRightFace()) {
+        m_rightFace = RL->getLeftFace();
+    }
+    else {
+        m_rightFace = RL->getRightFace();
+    }
+
+    //update topology of two legs and two hands
+    m_rightHand = RL;
+    m_leftHand  = RH;
+    m_rightLeg  = LL;
+    m_leftLeg   = LH;
+}
+
+
+
+VFace2D* VEdge2D::getMateFace( VVertex2D* vertex ) const
+{
+    VFace2D* mateFace = rg_NULL;
+
+    if ( vertex == getStartVertex() ) {
+        if ( getEndVertex() == getLeftHand()->getStartVertex() ) {
+            mateFace = getLeftHand()->getRightFace();
+        }
+        else {
+            mateFace = getLeftHand()->getLeftFace();
+        }
+    }
+    else if ( vertex == getEndVertex() ) {
+        if ( getStartVertex() == getLeftLeg()->getStartVertex() ) {
+            mateFace = getLeftLeg()->getLeftFace();
+        }
+        else {
+            mateFace = getLeftLeg()->getRightFace();
+        }
+    }
+    else {
+        mateFace = rg_NULL;
+    }
+
+    return mateFace;
+}
+
+
+
+void    VEdge2D::compute_radius_interval_of_tangent_circles() 
+{
+    m_radiusIntervalIsCalculated = true;
+
+    if (m_startVertex->isInfinite() && m_endVertex->isInfinite()) {
+        m_radiusIntervalOfTangentCircles[0] = DBL_MAX;
+        m_radiusIntervalOfTangentCircles[1] = DBL_MAX;
+    }
+    else if (m_startVertex->isInfinite()) {
+        m_radiusIntervalOfTangentCircles[0] = m_endVertex->getCircumcircle().getRadius();
+        m_radiusIntervalOfTangentCircles[1] = DBL_MAX;
+    }
+    else if (m_endVertex->isInfinite()) {
+        m_radiusIntervalOfTangentCircles[0] = m_startVertex->getCircumcircle().getRadius();
+        m_radiusIntervalOfTangentCircles[1] = DBL_MAX;
+    }
+    else {  
+        if (m_leftFace->getID() == -1 || m_rightFace->getID() == -1) {
+            //  if left or right face are container, 
+            m_radiusIntervalOfTangentCircles[0] = DBL_MAX;
+            m_radiusIntervalOfTangentCircles[1] = DBL_MAX;
+        }
+        else {
+            rg_Circle2D leftDisk  = m_leftFace->getGenerator()->getDisk();
+            rg_Circle2D rightDisk = m_rightFace->getGenerator()->getDisk();
+
+            rg_Line2D   lineFromLeftToRightFace(leftDisk.getCenterPt(), rightDisk.getCenterPt());
+            rg_Circle2D circleAtStartVtx = m_startVertex->getCircumcircle();
+            rg_Circle2D circleAtEndVtx   = m_endVertex->getCircumcircle();
+
+            double signedDist[2] = { lineFromLeftToRightFace.signed_distance(circleAtStartVtx.getCenterPt()),
+                                     lineFromLeftToRightFace.signed_distance(circleAtEndVtx.getCenterPt()) };
+            if (signedDist[0] * signedDist[1] < 0.0) {
+                rg_Circle2D minTangentCircle = leftDisk.computeMinTangentCircle(rightDisk);
+
+                m_radiusIntervalOfTangentCircles[0] = minTangentCircle.getRadius();
+                m_radiusIntervalOfTangentCircles[1] = circleAtStartVtx.getRadius();
+                if (circleAtStartVtx.getRadius() < circleAtEndVtx.getRadius()) {
+                    m_radiusIntervalOfTangentCircles[1] = circleAtEndVtx.getRadius();
+                }
+            }
+            else {
+                m_radiusIntervalOfTangentCircles[0] = circleAtStartVtx.getRadius();
+                m_radiusIntervalOfTangentCircles[1] = circleAtEndVtx.getRadius();
+                if (circleAtStartVtx.getRadius() > circleAtEndVtx.getRadius()) {
+                    m_radiusIntervalOfTangentCircles[0] = circleAtEndVtx.getRadius();
+                    m_radiusIntervalOfTangentCircles[1] = circleAtStartVtx.getRadius();
+                }
+            }
+        }
+    }
+}
+
+

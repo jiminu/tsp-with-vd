@@ -1,0 +1,121 @@
+#include "Ellipsoid3D.h"
+#include "rg_TMatrix3D.h"
+#include "rg_Polynomial.h"
+#include "rg_MathFunc.h"
+//#include "rg_QuarticPolynomial.h"
+//#include "rg_GeoFunc.h"
+
+Ellipsoid3D::Ellipsoid3D()
+:   m_center( rg_Point3D() ),
+    m_a(0.0),
+    m_b(0.0),
+    m_c(0.0)
+{
+}
+
+Ellipsoid3D::~Ellipsoid3D()
+{
+}
+
+Ellipsoid3D::Ellipsoid3D( const rg_Point3D & center, const rg_REAL & a, const rg_REAL & b, const rg_REAL & c )
+:   m_center(center),
+    m_a(a),
+    m_b(b),
+    m_c(c)
+{
+}
+
+Ellipsoid3D::Ellipsoid3D( const Ellipsoid3D & ellipsoid )
+:   m_center(ellipsoid.m_center),
+    m_a(ellipsoid.m_a),
+    m_b(ellipsoid.m_b),
+    m_c(ellipsoid.m_c)
+{
+}
+
+Ellipsoid3D & Ellipsoid3D::operator=( const Ellipsoid3D & ellipsoid )
+{
+    if ( this != &ellipsoid ) {
+        m_center    = ellipsoid.m_center;
+        m_a         = ellipsoid.m_a;
+        m_b         = ellipsoid.m_b;
+        m_c         = ellipsoid.m_c;
+    }
+
+    return *this;
+}
+
+rg_REAL Ellipsoid3D::compute_perpendicular_footprint_of_point_onto_ellipsoid(const rg_Point3D & givenPoint, rg_Point3D & footOnEllipsoid) const
+{
+    // assume that an ellipoid is placed at canonical position.
+    // givenPoint should be translated by ellipse center
+    rg_TMatrix3D transformMat;
+    transformMat.translate(-m_center);
+    //transformMat.rotate(-m_angleOfMajorAxisWithXAxis);
+
+    rg_Point3D point = transformMat * givenPoint;
+    rg_REAL x = point.getX();
+    rg_REAL y = point.getY();
+    rg_REAL z = point.getZ();
+
+    // optimized by Maple 18
+    rg_REAL t1, t2, t3, t4, t5, t6, t7, t9, t10, t12, t13, t16, t17, t32, t35, t41, t54, t60, t61, t80;
+
+    t1  = (m_a * m_a);
+    t2  = (t1 * t1);
+    t3  = (m_b * m_b);
+    t4  = (t3 * t3);
+    t5  = (t2 * t4);
+    t6  = (m_c * m_c);
+    t7  = (t6 * t6);
+    t9  = z * z;
+    t10 = (t6 * t9);
+    t12 = y * y;
+    t13 = (t3 * t12);
+    t16 = x * x;
+    t17 = (t1 * t16);	
+    t32 = (t2 * t3);
+    t35 = (t1 * t4);
+    t41 = 2 * t32 + 2 * t35;
+    t54 = t1 * t3;
+    t60 = 4 * t54;
+    t61 = t2 + t60 + t4;
+    t80 = 2 * t1 + 2 * t3;
+
+    rg_REAL* coeff = new rg_REAL[7];
+
+    coeff[0] = t13 * t2 * t7 + t17 * t4 * t7 + t10 * t5 - t5 * t7;
+    coeff[1] = 2 * t13 * t1 * t7 + 2 * t13 * t2 * t6 + 2 * t17 * t3 * t7 + 2 * t17 * t4 * t6 + 2 * t10 * t32 + 2 * t10 * t35 - t41 * t7 - 2 * t5 * t6;
+    coeff[2] = 4 * t13 * t1 * t6 + 4 * t17 * t3 * t6 + t10 * t2 + t10 * t4 + 4 * t10 * t54 + t13 * t2 + t13 * t7 + t17 * t4 + t17 * t7 - 2 * t41 * t6 - t61 * t7 - t5;
+    coeff[3] = 2 * t10 * t1 + 2 * t13 * t1 + 2 * t10 * t3 + 2 * t13 * t6 + 2 * t17 * t3 + 2 * t17 * t6 - 2 * t61 * t6 - t80 * t7 - 2 * t32 - 2 * t35;
+    coeff[4] = -2 * t80 * t6 + t10 + t13 + t17 - t2 - t4 - t60 - t7;
+    coeff[5] = -2 * t1 - 2 * t3 - 2 * t6;
+    coeff[6] = -1;
+
+    rg_Polynomial polynomial(6, coeff);
+    //polynomial = polynomial / polynomial.getCoefficient(6);
+
+    rg_REAL initialSolution;
+    if(contain(point))
+        initialSolution = 0.0;
+    else
+        initialSolution = point.magnitude() * rg_MathFunc::maxValue(m_a, m_b, m_c);
+
+    double math_res = 1E-6;
+    int    numIter_newton_method = 40;
+    rg_REAL alpha = rg_MathFunc::compute_root_of_polynomial_via_Newton_method_with_initial_solution(polynomial, initialSolution, math_res, numIter_newton_method);
+
+    rg_REAL a_squared = m_a * m_a, b_squared = m_b * m_b, c_squared = m_c * m_c;
+    footOnEllipsoid.setX(a_squared * x / (alpha + a_squared));
+    footOnEllipsoid.setY(b_squared * y / (alpha + b_squared));
+    footOnEllipsoid.setZ(c_squared * z / (alpha + c_squared));
+
+    if (coeff != rg_NULL)
+        delete[] coeff;
+
+    rg_REAL distance = point.distance(footOnEllipsoid);
+
+    return distance;
+}
+
+

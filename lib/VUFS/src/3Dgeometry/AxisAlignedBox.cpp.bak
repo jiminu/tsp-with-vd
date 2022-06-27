@@ -1,0 +1,196 @@
+#include "AxisAlignedBox.h"
+
+AxisAlignedBox::AxisAlignedBox()
+: m_minPoint(rg_REAL_INFINITY, rg_REAL_INFINITY, rg_REAL_INFINITY), 
+  m_maxPoint(-rg_REAL_INFINITY, -rg_REAL_INFINITY, -rg_REAL_INFINITY)
+{
+}
+
+
+
+AxisAlignedBox::AxisAlignedBox(const rg_Point3D& minPt, const rg_Point3D& maxPt)
+: m_minPoint(minPt), m_maxPoint(maxPt)
+{
+}
+
+
+
+AxisAlignedBox::AxisAlignedBox(const AxisAlignedBox& box)
+: m_minPoint(box.m_minPoint), m_maxPoint(box.m_maxPoint)
+{
+}
+
+
+
+AxisAlignedBox::~AxisAlignedBox()
+{
+}
+
+
+
+void       AxisAlignedBox::clear()
+{
+    m_minPoint.setPoint(rg_REAL_INFINITY, rg_REAL_INFINITY, rg_REAL_INFINITY);
+    m_maxPoint.setPoint(-rg_REAL_INFINITY, -rg_REAL_INFINITY, -rg_REAL_INFINITY);
+}
+
+
+
+rg_Point3D AxisAlignedBox::getMinPoint() const
+{
+    return m_minPoint;
+}
+
+
+
+rg_Point3D AxisAlignedBox::getMaxPoint() const
+{
+    return m_maxPoint;
+}
+
+
+
+rg_Point3D AxisAlignedBox::getSize() const
+{
+    return (m_maxPoint-m_minPoint);
+}
+
+
+
+rg_Point3D AxisAlignedBox::getCenter() const
+{
+    return (m_minPoint+m_maxPoint)*0.5;
+}
+
+
+
+void       AxisAlignedBox::setMinPoint(const rg_Point3D& minPt)
+{
+    m_minPoint = minPt;
+}
+
+
+
+void AxisAlignedBox::setMaxPoint(const rg_Point3D& maxPt)
+{
+    m_maxPoint = maxPt;
+}
+
+
+
+void AxisAlignedBox::setAxisAlignedBox(const rg_Point3D& minPt, const rg_Point3D& maxPt)
+{
+    m_minPoint = minPt;
+    m_maxPoint = maxPt;
+}
+
+
+
+rg_REAL AxisAlignedBox::computeLengthOfDiagonal() const
+{
+    return getSize().magnitude();
+}
+
+
+
+rg_REAL AxisAlignedBox::computeAreaOfDiagonalFace() const
+{
+    rg_Point3D size = m_maxPoint-m_minPoint;
+
+    rg_REAL lengthOfDiagonalInXY = sqrt(size.getX()*size.getX() + size.getY()*size.getY());
+
+    return lengthOfDiagonalInXY*size.getZ();
+}
+
+
+
+rg_REAL AxisAlignedBox::computeVolume() const
+{
+    rg_Point3D size = m_maxPoint-m_minPoint;
+
+    return (size.getX()*size.getY()*size.getZ());
+}
+
+
+
+AxisAlignedBox& AxisAlignedBox::operator =(const AxisAlignedBox& box)
+{
+    if ( this == &box )
+        return *this;
+
+    m_minPoint = box.m_minPoint;
+    m_maxPoint = box.m_maxPoint;
+
+    return *this;
+}
+
+
+
+void AxisAlignedBox::enlarge(const double& ratio)
+{
+    rg_Point3D center = getCenter();
+
+    rg_Point3D vecCenter2Max = m_maxPoint - center; 
+    rg_Point3D vecCenter2Min = m_minPoint - center;
+
+    m_maxPoint = center + ratio*vecCenter2Max;
+    m_minPoint = center + ratio*vecCenter2Min;
+}
+
+
+
+void AxisAlignedBox::update(const rg_Point3D& point)
+{
+	// update minimum point
+	if( point.getX() < m_minPoint.getX())
+		m_minPoint.setX( point.getX() );
+
+	if( point.getY() < m_minPoint.getY())
+		m_minPoint.setY( point.getY() );
+
+	if( point.getZ() < m_minPoint.getZ())
+		m_minPoint.setZ( point.getZ() );
+
+	// update maximum point
+	if( point.getX() > m_maxPoint.getX())
+		m_maxPoint.setX( point.getX() );
+
+	if( point.getY() > m_maxPoint.getY())
+		m_maxPoint.setY( point.getY() );
+
+	if( point.getZ() > m_maxPoint.getZ())
+		m_maxPoint.setZ( point.getZ() );
+
+}
+
+
+
+void AxisAlignedBox::update(const Sphere&     sphere)
+{
+	rg_Point3D center = sphere.getCenter();
+
+	double x = sphere.getCenter().getX();
+	double y = sphere.getCenter().getY();
+	double z = sphere.getCenter().getZ();
+	double radius = sphere.getRadius();
+
+	// update minimum point
+	if( x - radius < m_minPoint.getX())
+		m_minPoint.setX( x - radius );
+
+	if( y - radius < m_minPoint.getY())
+		m_minPoint.setY( y - radius );
+
+	if( z - radius < m_minPoint.getZ())
+		m_minPoint.setZ( z - radius );
+
+	// update maximum point
+	if( x + radius > m_maxPoint.getX())
+		m_maxPoint.setX( x + radius );
+
+	if( y + radius > m_maxPoint.getY())
+		m_maxPoint.setY( y + radius );
+
+	if( z + radius > m_maxPoint.getZ())
+		m_maxPoint.setZ( z + radius );
+}

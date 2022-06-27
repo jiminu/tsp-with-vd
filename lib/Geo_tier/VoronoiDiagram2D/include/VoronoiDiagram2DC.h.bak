@@ -1,0 +1,508 @@
+#ifndef VORONOIDIAGRAM2DC_H
+#define VORONOIDIAGRAM2DC_H
+
+
+#include "VEdge2D.h"
+#include "VFace2D.h"
+#include "VVertex2D.h"
+#include "Generator2D.h"
+
+#include "Disk.h"
+#include "rg_Point2D.h"
+#include "rg_Circle2D.h"
+#include "rg_BoundingBox2D.h"
+#include "BucketForDisks.h"
+#include "rg_Triplet.h"
+
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <list>
+using namespace std;
+
+namespace V {
+namespace GeometryTier {
+
+class Priority_Q_VEdge;
+const bool IS_BUCKET_USED = true;
+
+
+class VoronoiDiagram2DC
+{
+protected:
+    list<VVertex2D*>        m_VVertices;
+    list<VEdge2D*>          m_VEdges;
+    list<VFace2D*>          m_VFaces;
+    list<Generator2D*>      m_generators;
+    list<Generator2D*>      m_phantomGenerators;
+    list<rg_Circle2D>       m_phantomCircles;
+
+    static const int        INFINITE_CIRCLE_RADIUS = 1e6; // We cannot initialize a variable of const double in class.
+
+    BucketForDisks          m_bucket;
+    rg_Circle2D             m_circleEnclosingVertices;
+
+	Disk **                 m_directAddressTableFromDiskIDToDiskArrangement; // disk arragement in double precision by Joonghyun March, 17
+
+
+public:
+    VoronoiDiagram2DC();
+    VoronoiDiagram2DC( list<rg_Circle2D>& circleset );
+    
+    //BEGIN - write full code for copy constructor : [2016. 11.10. cysong]
+    VoronoiDiagram2DC( const VoronoiDiagram2DC& VD2DC );
+    virtual ~VoronoiDiagram2DC();
+    //END - write full code for copy constructor : [2016. 11.10. cysong]
+
+    void         getVoronoiVertices( list<const VVertex2D*>& VVerticesList ) const;
+    void         getVoronoiEdges(    list<const VEdge2D*>& VEdgesList ) const;
+    void         getVoronoiFaces(    list<const VFace2D*>& VFacesList ) const;
+    void         getGenerators(      list<const Generator2D*>& generatorsList ) const;
+    void         getPhantomGenerator(list<const Generator2D*>& phantomGeneratorsList ) const;
+
+    //BEGIN - add getter for Voronoi entity : [2016. 11.10. cysong]
+    void         getVoronoiEdges(    list<VEdge2D*>& VEdgesList) const;
+    void         getVoronoiFaces(    list<VFace2D*>& VFacesList) const;
+    void         getVoronoiVertices( list<VVertex2D*>& VVerticesList) const;
+    void         getGenerators(      list<Generator2D*>& generatorsList) const;
+    void         getPhantomGenerator(list<Generator2D*>& phantomGeneratorsList) const;
+    //END - add getter for Voronoi entity : [2016.11.10. cysong]
+
+    //BEGIN - add query function : [2020. 02. 27. mwlee]
+    VEdge2D*     getCCWNextEdgeOnVertex( VEdge2D* tEdge, VVertex2D* tVertex ) const;
+    VEdge2D*     getCCWPrevEdgeOnVertex( VEdge2D* tEdge, VVertex2D* tVertex ) const;
+    VEdge2D*     getCCWNextEdgeOnFace( VEdge2D* tEdge, VFace2D* tFace ) const;
+    VEdge2D*     getCCWPrevEdgeOnFace( VEdge2D* tEdge, VFace2D* tFace ) const;
+    VFace2D*     getFaceOfOppositeSide( VFace2D* tFace, VEdge2D* tEdge ) const;
+    VFace2D*     getMatingFace( VVertex2D* tVertex, VEdge2D* tEdge ) const;
+    //END - add query function : [2020. 02. 27. mwlee]
+
+    //BEGIN - add const at the end of function and in the function: [2016. 11.10. cysong]
+    int         getNumberOfVVertices() const;
+    int         getNumberOfVEdges() const;
+    int         getNumberOfVFaces() const;
+    //END - add const at the end of function in the function : [2016. 11.10. cysong]
+
+
+    //BEGIN - operators : [2016. 11.10. cysong]
+    VoronoiDiagram2DC& operator=(    const VoronoiDiagram2DC& VD2DC );    
+    bool        operator==(const VoronoiDiagram2DC& VD2DC) const;
+	bool        operator!=(const VoronoiDiagram2DC& VD2DC) const;
+    //END - operators : [2016. 11.10. cysong]
+
+    void        constructVoronoiDiagram( list<rg_Circle2D>& circleset );
+    void        constructVoronoiDiagram( list< pair< rg_Circle2D, void* > >& circleNUserDataPairSet );
+    void        constructVoronoiDiagram( list< rg_Triplet< rg_Circle2D, int, void* > >& circleAndIDAndUserDataSet );
+    void        constructVoronoiDiagram();
+    void        constructVoronoiDiagramWithoutSorting( list<rg_Circle2D>& circleset );
+   
+    //BEGIN - fuctions for DVD
+    void        constructVoronoiDiagramWithoutPhantomDiskRemoval( list<rg_Circle2D>& circleset );
+    void        constructVoronoiDiagramWithoutPhantomDiskRemoval( list< pair< rg_Circle2D, void* > >& circleNUserDataPairSet );
+    void        constructVoronoiDiagramWithoutPhantomDiskRemoval( list< rg_Triplet< rg_Circle2D, int, void* > >& circleAndIDAndUserDataSet );
+    void        constructVoronoiDiagramWithoutPhantomDiskRemoval();
+    //END - fuctions for DVD
+
+
+    //BEGIN - functions: add const for explictly showing that this function do not change member variables: [2019. 9. 17. cysong]
+    VFace2D*    findVFaceContainingQueryPoint( const rg_Point2D& pt ) const ;
+    VVertex2D*  findClosestVVertexToPoint(const rg_Point2D& pt) const;
+    VVertex2D*  findVisibleClosestVVertexToPoint(const rg_Point2D& pt) const;
+    //END - functions: add const for explictly showing that this function do not change member variables: [2019. 9. 17. cysong]
+
+    //[2019.09.24] BEGIN - replace 'findVisibleClosestVVertexToPoint' with 'findVisibleNearestVVertexToPoint()'
+    VVertex2D*  findVisibleNearestVVertexToPoint(const rg_Point2D& queryPoint, const double& probeRadius = 0.0) const;
+    //[2019.09.24] END - replace 'findVisibleClosestVVertexToPoint' with 'findVisibleNearestVVertexToPoint()'
+
+
+    //BEGIN - add bucket memory killing : [2016. 11.10. cysong]
+    void         clear();
+    //END - add bucket memory killing: [2016. 11.10. cysong]
+    
+    //BEGIN - [2020. 05. 26. cysong]
+    void         removeREDVVerticesAndVEdges();
+    //END - [2020. 05. 26. cysong]
+
+    void         updateGeometry();
+    
+    Generator2D* deleteOneGenerator(Generator2D* generator);
+    void		 insertOneGenerator(Generator2D* generator);
+    
+    Generator2D*    insertDiskIntoVD( const rg_Circle2D& disk );
+    Generator2D*    insertDiskIntoVD( pair< rg_Circle2D, void* >& diskNUserDataPair);
+    Generator2D*    insertDiskIntoVD( const rg_Triplet< rg_Circle2D, int, void* > & diskAndIDAndUserData);
+    Generator2D*    insertDiskIntoVD_new_influenced_removed_edge( const rg_Triplet< rg_Circle2D, int, void* > & diskAndIDAndUserData, list<VEdge2D*>& newEdges, list<VEdge2D*>& influencedEdges, list<VEdge2D*>& removedEdges );
+    Generator2D*    insertDiskIntoVD_for_initial_arrangement_of_diskpacking( const rg_Triplet< rg_Circle2D, int, void* > & diskAndIDAndUserData,
+                                        list<VVertex2D*>& redVertices,
+                                        list<VEdge2D*>& redEdges,
+                                        list<VVertex2D*>& newVertices,
+                                        list<VEdge2D*>& newEdges,
+                                        list<VEdge2D*>& influencedEdges );
+
+
+
+    //BEGIN - function: add disk direct acceptable array (ID -> Disk) JHRYU
+    Disk*           getDisk(const int& ID);
+    void            setDisk(const int& ID, Disk* disk);
+    void            updateTangentCircleForContactMap(VVertex2D* const vertex);
+    void            updateTangentCircleForContactMap(VEdge2D * const edge);
+    void            updateTangentCircleForContactMap(list<VEdge2D*>& edges);
+    void            setDirectAddressTableFromDiskIDToDiskArrangement(Disk ** tableFromIDToDisk);
+    Disk**          getDirectAddressTableFromDiskIDToDiskArrangement();
+    //END- function: add disk direct acceptable array (ID -> Disk)
+
+
+protected:
+    //BEGIN - VD copy function : [2016. 11.10. cysong]
+    void            copyVoronoiDiagramFrom(const VoronoiDiagram2DC& VD2DC);
+    //END - VD copy function : [2016. 11.10. cysong]
+
+    VVertex2D*      createVVertex( VVertex2D* const vertex );
+    VEdge2D*        createVEdge(   VEdge2D* const edge );
+    VFace2D*        createVFace(   VFace2D* const face );
+
+    VVertex2D*      createVertex( const int& id );
+    VEdge2D*        createEdge(   const int& id );
+    VFace2D*        createFace(   const int& id );
+    Generator2D*    createGenerator();
+
+    bool            isThisPhantomGenerator(const Generator2D* generator) const;
+
+    //BEGIN - create sorted(or non-sorted) generators
+    void            setGenerators( list<rg_Circle2D>& circleset );
+    void            setGenerators( list< pair< rg_Circle2D, void* > >& circleNUserDataPairSet );
+    void            setGenerators( list< rg_Triplet< rg_Circle2D, int, void* > >& circleAndIDAndUserDataSet );
+    void            setGenerators( list<Generator2D*>& generators );
+    void            setGeneratorsWithoutSorting( list<rg_Circle2D>& circleset );
+    //END - create sorted(or non-sorted) generators
+
+    void         insertPhantomGenerators();
+    void            getBoundingBoxNMaxRadius( rg_BoundingBox2D& boundingBox, double& maxRadius );
+    void            computeSugiharaCoordOfPhantomGenerators( const rg_BoundingBox2D& boundingBox, rg_Point2D& firstCoord, rg_Point2D& secondCoord, rg_Point2D& thirdCoord );
+    void            computeCoordOfPhantomGenerators_beforeOffset( const rg_BoundingBox2D& boundingBox, rg_Point2D& firstCoord, rg_Point2D& secondCoord, rg_Point2D& thirdCoord );
+    void            transformCoordinatesToMakeOffsetTriangleByMaxRadius( const double& maxRadius, rg_Point2D& firstCoord, rg_Point2D& secondCoord, rg_Point2D& thirdCoord );
+    void            setPhantomGenerators( const double& maxRadius, rg_Point2D& firstCoord, rg_Point2D& secondCoord, rg_Point2D& thirdCoord );
+    
+    void         constructVoronoiDiagramForPhantomGenerators();
+
+    void         updateVoronoiDiagramWithNewGenerator( Generator2D* const newGenerator );
+    //BEGIN - add functions to get entities which is influenced by new generator (same task)
+    void         updateVoronoiDiagramWithNewGenerator_new_influenced_removed_edges( Generator2D* const newGenerator, list<VEdge2D*>& newEdges, list<VEdge2D*>& influencedEdges, list<VEdge2D*>& removedEdges );
+    void         updateVoronoiDiagramWithNewGenerator_for_initial_arrangement_of_diskpacking( Generator2D* const newGenerator, list<VVertex2D*>& redVertices, list<VEdge2D*>& redEdges, list<VVertex2D*>& newVertices, list<VEdge2D*>& newEdges, list<VEdge2D*>& influencedEdges );
+    //END - add functions to get entities which is influenced by new generator
+
+    Generator2D* findClosestGeneratorToNewGenerator(   Generator2D* const newGenerator );
+    void         removeAllExtraneousVVerticesAndVEdges();
+
+
+    void         findIntersectingVEdgesOfCurrVDAgainstNewVEdgeLoop_EdgeSplitPossible( Generator2D* const newGenerator,
+                                                                                      Generator2D* const closestGenerator,
+                                                                                      list<VEdge2D*>& intersectingVEdges,
+                                                                                      list<VVertex2D*>& fictitiousVVertices);
+    //BEGIN - add same function to get entities which are influenced by new generator
+    void         findIntersectingVEdgesOfCurrVDAgainstNewVEdgeLoop_EdgeSplitPossible_influenced_removed_edge( 
+                        Generator2D* const newGenerator,
+                        Generator2D* const closestGenerator,
+                        list<VEdge2D*>& intersectingVEdges,
+                        list<VVertex2D*>& fictitiousVVertices,
+                        list<VEdge2D*>& influencedEdges,
+                        list<VEdge2D*>& removedEdges );
+    void         findIntersectingVEdgesOfCurrVDAgainstNewVEdgeLoop_red_entities( 
+                        Generator2D* const newGenerator,
+                        Generator2D* const closestGenerator,
+                        list<VEdge2D*>& intersectingVEdges,
+                        list<VVertex2D*>& fictitiousVVertices,
+                        list<VVertex2D*>& redVertices,
+                        list<VEdge2D*>& redEdges );
+    //END - add same function to get entities which are influenced by new generator
+
+
+
+    void         resetAnomalyTestDoneToggle( list<VEdge2D*>& anomalyTestedVEdges );
+    void         findAnomalizingEdgeAmongIncidentVEdgesAndSplit( VVertex2D* const currRedVVertex,
+                                                                 Generator2D* const newGenerator,
+                                                                 list<VVertex2D*>& fictitiousVVertices,
+                                                                 list<VEdge2D*>& anomalyTestedVEdges );
+    void         findRedVVertexAmongNeighbor( VVertex2D* const currRedVVertex,
+                                              Generator2D* const newGenerator,
+                                              list<VVertex2D*>& blueVVertices,
+                                              list<VVertex2D*>& redVVertices,
+                                              list<VVertex2D*>& fictitiousVVertices,
+                                              list<VEdge2D*>& anomalyTestedVEdges );
+    void         findCrossingEdges( list<VVertex2D*>& redVVertices, list<VEdge2D*>& intersectingVEdges );
+    //BEGIN - add same function to get entities which are influenced by new generator
+    void         findCrossingEdges_red_edge( list<VVertex2D*>& redVVertices, list<VEdge2D*>& intersectingVEdges, list<VEdge2D*>& removedEdges );
+    //END - add same function to get entities which are influenced by new generator
+    void         reconfigureByConvertingBlueVVerticesToWhite( list<VVertex2D*>& blueVVertices );
+    void         makeVEdgeLoopForNewGeneratorAndConnectToCurrVD(    Generator2D* const newGenerator,
+                                                                    list<VEdge2D*>& intersectingVEdges,
+                                                                    list<VVertex2D*>& newVVertices,
+                                                                    list<VEdge2D*>& newVEdges );
+    void         connectCurrVDToNewVEdgeLoop( list<VEdge2D*>& newVEdges );
+    virtual void computeCoordOfNewVVertices(  list<VVertex2D*>& newVVertices );
+    virtual double computeMUValue( VVertex2D* const vertex, Generator2D* const newGenerator );
+
+    VVertex2D*   findFirstRedVertex( Generator2D* const newGenerator, Generator2D* const closestGenerator );
+    bool         hasCycleOccurred(   VVertex2D* const candidateForRedVVertex );
+    bool         hasOldRegionSplit(  VVertex2D* const candidateForRedVVertex );
+    virtual bool isAnomalizingEdge(  VEdge2D* const incidentEdge, Generator2D* const newGenerator );
+    void         mergeSplitVEdgesByFictitiousVVertex( list<VVertex2D*>& fictitousVVertices );
+    rg_BOOL      areTwoVerticesDefinedBySameGeneratorTriplet( VVertex2D* const firstVertex, VVertex2D* const secondVertex );
+    VVertex2D*   splitVEdgeAtFictitiousVVertex( VEdge2D* const currVEdge );
+    void         updateEdge( VEdge2D* target );
+    rg_Point2D   getTangentVector( VVertex2D* tVertex, VFace2D* lFace, VFace2D* rFace );
+    virtual rg_Point2D   getPassingPtOnEdge( VFace2D* lFace, VFace2D* rFace, VVertex2D* sVertex, VVertex2D* eVertex );
+    void         wavePropagation_ver1( Generator2D* newGenerator, 
+                                       list<VVertex2D*>& redVVertices,
+                                       list<VVertex2D*>& blueVVertices,
+                                       list<VVertex2D*>& fictitiousVVertices );
+    void         wavePropagation_ver2( Generator2D* newGenerator, 
+                                       list<VVertex2D*>& redVVertices,
+                                       list<VVertex2D*>& blueVVertices,
+                                       list<VVertex2D*>& fictitiousVVertices,
+                                       list<VEdge2D*>&   anomalyTestedVEdges );
+
+
+    static bool  compareCircleDescendingorder( const rg_Circle2D& circle1, const rg_Circle2D& circle2 );
+    static bool  compareCirclePairDescendingorder( const pair< rg_Circle2D, void* >& circle1, const pair< rg_Circle2D, void* >& circle2 );
+    static bool  compareCirclePairAscendingOrder( const pair< rg_Circle2D, void* >& circle1, const pair< rg_Circle2D, void* >& circle2 );
+    static bool  compareCircleTripletDescendingorder( const rg_Triplet< rg_Circle2D, int, void* >& circle1, const rg_Triplet< rg_Circle2D, int, void* >& circle2 );
+    static bool  compareGeneratorNonAscendingOrder(const Generator2D* const generator1, const Generator2D* const generator2);
+
+protected:
+    void        removePhantomGenerators();
+        void        collectEntitiesInfluencedByPhantomRemoval( set<VFace2D*>& phantomFaces, list<VEdge2D*>& virtualEdges, list<VEdge2D*>& unboundedEdges_before_phantom_removal, list<VEdge2D*>& edgesDefinedByPhantomNInputDisk );
+        void        putRedTagsOnEntitiesTobeRemoved( list<VEdge2D*>& virtualEdges, list<VEdge2D*>& unboundedEdges_before_phantom_removal );
+        void        adjustTopologyOfInterfaceBetweenInputDisksNPhantomDisks( VFace2D* virtualFace, list<VEdge2D*>& unboundedEdges_before_phantom_removal, set<VFace2D*>& phantomFaces, list<VEdge2D*>& edgesDefinedByPhantomNInputDisk );
+        void        removePhantomFaces( set<VFace2D*>& phantomFaces );
+
+        void        correctTopologyInUnboundedRegion();
+        void        removeEdgesDefinedByOnlyPhantomGenerators();
+        void        replaceRegionsOfPhantomGeneratorsWithVirtualRegion();
+        void        removeVoronoiRegionsOfPhantomGenerators();
+        void        makeMoreThanTwoEdgesBetweenRealAndVirtualRegionIntoOne();
+
+        void        makeCorrectTopologyOfTheInterfaceByFlippingEdges( VFace2D* virtualFace );
+        void        assignCoordinateOfInfiniteVertices();
+
+        //BEGIN - use heap structure instead of linked list as a priority queue
+        void        collectPossiblyFlippingEdgesOnTheInterface_StoredInPriorityQueue( VFace2D* virtualFace, Priority_Q_VEdge& possiblyFlippingEdges );
+        void        removeRootNodeOfPriorityQueue( rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges, rg_dNode< pair<VEdge2D*, rg_Circle2D> >*& nodeWithSmallestCircle );
+        void        flipThisEdgeNFindTwoIncidentTriplets( VFace2D* virtualFace, pair<VEdge2D*, rg_Circle2D>& edgeNCircle, VEdge2D*& incidentTriplet1, VEdge2D*& incidentTriplet2 );
+        void        reflectTheFlipOnTheIncidentTriplet_deletion( rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges, VEdge2D*& edgeOfIncidentTriplet, VFace2D*& virtualFace );
+        void        reflectTheFlipOnTheIncidentTriplet( Priority_Q_VEdge& possiblyFlippingEdges, VEdge2D*& edgeOfIncidentTriplet, VFace2D* const virtualFace );
+        //END- use heap structure instead of linked list as a priority queue
+    
+    void        collectPossiblyFlippingEdgesOnTheInterfaceForBoolean_StoredInPriorityQueue( VFace2D* toBeRemovedFace, rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges );
+	bool		findTwoVEdgesWhichHaveIdenticalDiskTriplet(VFace2D* const faceToBeRemoved, VEdge2D*& edge1, VEdge2D*& edge2);
+    void        removeVFaceBoundedByThreeVEdges(VFace2D*& toBeRemovedVFace);
+    void        removeVFaceBoundedByTwoVEdges(VFace2D*& toBeRemovedVFace);
+    void        removeVFaceBoundedByTwoVEdges(VFace2D*& toBeRemovedVFace, VEdge2D*& mergedVEdge);
+	void		removeVFaceBoundedByTwoVEdgeWithIdenticalDIskTripletAndTrappedRegion(VFace2D*& toBeRemovedVFace, VEdge2D* edge1, VEdge2D* edge2);
+		void		findTrappedGeneratorsNMarkTheirBoundaryEntities(VFace2D* toBeRemovedVFace, VEdge2D* edge1WithIdenticalDiskTriplet, VEdge2D* edge2WithIdenticalDiskTriplet, set<Generator2D*>& trappedGenerators, list<VEdge2D*>& edgesOnTrappedRegion, list<VVertex2D*>& verticesOnTrappedRegion );
+		void		removeVFacesDefinedByTemporarilyDeletedGenerators(set<Generator2D*>& trappedGenerators);
+		void		mergeTwoQuillVEdgesOfTrappedRegion(VFace2D*& toBeRemovedVFace, VEdge2D* edge1, VEdge2D* edge2);
+		void		updateVoronoiDiagramWithTemporarilyDeletedGenerators(set<Generator2D*>& trappedGenerators);
+	//VEdge2D*	findEdgeToBeFlippedBetweenTwoEdgesWithIdenticalDiskTriplet( VFace2D* faceToBeRemoved, VEdge2D* edge1, VEdge2D* edge2 );
+
+    bool        isFlippingEdgeOnVirtualRegion( VEdge2D* edge, rg_Circle2D& circumcircle, VFace2D* virtualFace );
+    
+    void        collectUnboundedEdges( list<VEdge2D*>& unboundedEdges );
+    virtual bool        isCorrectCircumcircle( rg_Circle2D& circumcircle, VFace2D* prevFace, VFace2D* currFace, VFace2D* nextFace );
+    pair<VEdge2D*, rg_Circle2D> dequeueRootNode_DiskTripletWithMinTangentCircle( rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges );
+    pair<VEdge2D*, rg_Circle2D> dequeueRootNode_VEdgeWithCircumcircleFarFromGeneratorToBeRemoved( rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges, const Generator2D* const generatorToBeRemoved );
+    virtual void    updateCircumcircle( VVertex2D* const vertex );
+    void        getThreeGeneratorsDefiningVertex( VVertex2D* tVertex, Generator2D*& generator1, Generator2D*& generator2, Generator2D*& generator3 );
+    virtual int computeCircumcirclesForDeletion( VFace2D* prevFace, VFace2D* currFace, VFace2D* nextFace, rg_Circle2D& circumCircle1, rg_Circle2D& circumCircle2 );
+
+
+
+    /////////////////////////////////////////////////////////////////////////
+    // For boolean operator deletion
+    bool        findTrappedGeneratorsAndEntities(VFace2D* VFaceToBeRemoved, VFace2D* trappingFace, VEdge2D* prevEdge_CCW, VEdge2D* nextEdge_CCW, set<Generator2D*>& trappedGenerators);
+    bool        thereIsVEdgeWhichHasIdenticalDiskTripletBetweenAdjacentVEdgesOnBoundaryOfInputVFace(const VEdge2D* edge, const VFace2D* face, VEdge2D*& prevTrappingEdge, VEdge2D*& nextTrappingEdge);
+    void        findTrappingVEdges(VFace2D* faceToBeRemoved, list<VEdge2D*>& trappingEdges, VFace2D*& trappingFace);
+    void        temporarilyRemoveTrappedGenerators(set<Generator2D*>& trappedGenerators);
+    VEdge2D*    mergeTwoTrappingVEdges(VEdge2D* prevQuillEdge_CCW, VEdge2D* nextQuillEdge_CCW, VFace2D* toBeRemovedVFace);
+    void        reflectMergedEdge(VEdge2D* mergedVEdge, VFace2D* toBeRemovedVFace, rg_dList< pair<VEdge2D*, rg_Circle2D> >& possiblyFlippingEdges);
+    //void        mergeTwoQuillVEdgesOfTrappedRegion(VFace2D*& toBeRemovedVFace, VEdge2D* edge1, VEdge2D* edge2);
+
+
+    //BEGIN - used in operation== : [2016. 11.10. cysong]
+    bool		does_vfaces_N_generators_have_right_connection() const;
+    bool		are_same_generators(const list<Generator2D*>& generators_VD1, const list<Generator2D*>& generators_VD2, map < Generator2D*, Generator2D* >& linker_gen_to_gen) const;
+    bool		are_same_vface_topologies(const list<VFace2D*>& faces1, const list<VFace2D*>& faces2, const map < Generator2D*, Generator2D* >& linker_gen_to_gen) const;
+    bool		are_same_vedge_topologies(const list<VEdge2D*>& edges1, const list<VEdge2D*>& edges2, const map < Generator2D*, Generator2D* >& linker_gen_to_gen) const;
+    bool		are_same_vvertex_topologies(const list<VVertex2D*>& vertices1, const list<VVertex2D*>& vertices2, const map < Generator2D*, Generator2D* >& linker_gen_to_gen) const;
+    bool		are_same_vvertex_topologies_new(const list<VVertex2D*>& vertices1, const list<VVertex2D*>& vertices2, const map < Generator2D*, Generator2D* >& linker_gen_to_gen) const;
+    //END - used in operation== : [2016. 11.10. cysong]
+
+
+    //BEGIN - used for polygonVD
+    /* We leave this function to VoronoiDiagram2DC because this function is topology operation*/
+    bool        mergeSecondVFaceToTheFirstIfTheyAreAdjacent( const VFace2D* const VCellToRemain, const VFace2D* const VCellToBeMerged );
+    //END - used for polygonVD
+};
+
+
+
+inline VEdge2D* VoronoiDiagram2DC::getCCWNextEdgeOnVertex( VEdge2D* tEdge, VVertex2D* tVertex ) const
+{
+    VEdge2D* CCWNextEdge = NULL;
+    if( tVertex == tEdge->getStartVertex() ) {
+        CCWNextEdge = tEdge->getLeftLeg();
+    }
+    else if( tVertex == tEdge->getEndVertex() ) {
+        CCWNextEdge = tEdge->getRightHand();
+    }
+
+    return CCWNextEdge;
+}
+
+
+
+inline VEdge2D* VoronoiDiagram2DC::getCCWPrevEdgeOnVertex( VEdge2D* tEdge, VVertex2D* tVertex ) const
+{
+    VEdge2D* CWNextEdge = NULL;
+    if( tVertex == tEdge->getStartVertex() ) {
+        CWNextEdge = tEdge->getRightLeg();
+    }
+    else if( tVertex == tEdge->getEndVertex() ) {
+        CWNextEdge = tEdge->getLeftHand();
+    }
+
+    return CWNextEdge;
+}
+
+
+
+inline VEdge2D* VoronoiDiagram2DC::getCCWNextEdgeOnFace( VEdge2D* tEdge, VFace2D* tFace ) const
+{
+    VEdge2D* CCWNextEdge = NULL;
+    if( tFace == tEdge->getLeftFace() ) {
+        CCWNextEdge = tEdge->getLeftHand();
+    }
+    else if( tFace == tEdge->getRightFace() ) {
+        CCWNextEdge = tEdge->getRightLeg();
+    }
+
+    return CCWNextEdge;
+}
+
+
+
+inline VEdge2D* VoronoiDiagram2DC::getCCWPrevEdgeOnFace( VEdge2D* tEdge, VFace2D* tFace ) const
+{
+    VEdge2D* CWNextEdge = NULL;
+    if( tFace == tEdge->getLeftFace() ) {
+        CWNextEdge = tEdge->getLeftLeg();
+    }
+    else if( tFace == tEdge->getRightFace() ) {
+        CWNextEdge = tEdge->getRightHand();
+    }
+
+    return CWNextEdge;
+}
+
+
+
+inline VFace2D* VoronoiDiagram2DC::getFaceOfOppositeSide( VFace2D* tFace, VEdge2D* tEdge ) const
+{
+    VFace2D* oppositeSideFace = NULL;
+    if( tFace == tEdge->getRightFace() )
+        oppositeSideFace = tEdge->getLeftFace();
+    else if( tFace == tEdge->getLeftFace() )
+        oppositeSideFace = tEdge->getRightFace();
+
+    return oppositeSideFace;
+}
+
+
+
+inline VFace2D* VoronoiDiagram2DC::getMatingFace( VVertex2D* tVertex, VEdge2D* tEdge ) const
+{
+    VFace2D* mateFace = NULL;
+    if( tVertex == tEdge->getStartVertex() )
+        mateFace = getFaceOfOppositeSide( tEdge->getLeftFace(), tEdge->getLeftHand() );
+    else
+        mateFace = getFaceOfOppositeSide( tEdge->getRightFace(), tEdge->getRightLeg() );
+
+    return mateFace;
+}
+
+
+
+inline Disk*  VoronoiDiagram2DC::getDisk(const int& ID)
+{
+    if (ID != -1)
+        return m_directAddressTableFromDiskIDToDiskArrangement[ID];
+    else
+        return m_directAddressTableFromDiskIDToDiskArrangement[0];
+}
+
+
+
+inline void   VoronoiDiagram2DC::setDisk(const int& ID, Disk* disk) 
+{ 
+    if (ID != -1)
+        m_directAddressTableFromDiskIDToDiskArrangement[ID] = disk; 
+    else
+        m_directAddressTableFromDiskIDToDiskArrangement[0] = disk;
+}
+
+
+
+inline void VoronoiDiagram2DC::updateTangentCircleForContactMap(VEdge2D * const edge)
+{
+    return; // not yet reflected in the code.
+
+    if (m_directAddressTableFromDiskIDToDiskArrangement == rg_NULL)
+        return;
+
+#ifdef _DEBUG
+    if (edge->getStatus() == RED_E)
+        int here = 1;
+#endif
+
+    Generator2D* generator1 = edge->getLeftFace()->getGenerator();
+    Generator2D* generator2 = edge->getRightFace()->getGenerator();
+    rg_Circle2D circle[2] = { getDisk(generator1->getID())->getCircle(), getDisk(generator2->getID())->getCircle() };
+
+    rg_Circle2D tangentCircle = circle[0].computeMinTangentCircle(circle[1]);
+    edge->setTangentCircle(tangentCircle);
+}
+
+
+
+inline void VoronoiDiagram2DC::updateTangentCircleForContactMap(list<VEdge2D*>& edges)
+{
+    return; // not yet reflected in the code.
+
+    list<VEdge2D*>::iterator i_edge = edges.begin();
+    for (; i_edge != edges.end(); ++i_edge)
+    {
+        updateTangentCircleForContactMap(*i_edge);
+    }
+}
+
+
+
+inline void VoronoiDiagram2DC::setDirectAddressTableFromDiskIDToDiskArrangement(Disk ** directAddressTableFromDiskIDToDiskArrangement)
+{
+    m_directAddressTableFromDiskIDToDiskArrangement = directAddressTableFromDiskIDToDiskArrangement;
+}
+
+
+
+inline Disk** VoronoiDiagram2DC::getDirectAddressTableFromDiskIDToDiskArrangement() 
+{
+    return m_directAddressTableFromDiskIDToDiskArrangement;
+}
+
+} // GeometryTier
+} // V
+
+
+#endif
+
+

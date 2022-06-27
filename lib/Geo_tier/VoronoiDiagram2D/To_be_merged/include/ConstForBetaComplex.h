@@ -1,0 +1,28 @@
+#ifndef _CONSTFORBETACOMPLEX_H
+#define _CONSTFORBETACOMPLEX_H
+
+#include "rg_Const.h"
+
+const rg_INT ON_BOUNDARY_OF_CONVEX_HULL  = 1;
+const rg_INT NON_BOUNDARY_OF_CONVEX_HULL = 0;
+
+const rg_INT UNATTACHED = 0;
+const rg_INT ATTACHED   = 1;
+const rg_INT NOTTACHED  = 2; 
+
+const rg_INT EXTRANEOUS_SIMPLEX = -1;
+const rg_INT EXTERIOR_SIMPLEX	= -1;
+const rg_INT SINGULAR_SIMPLEX   = 0;
+const rg_INT REGULAR_SIMPLEX    = 1;
+const rg_INT INTERIOR_SIMPLEX   = 2;
+
+const rg_INT NUM_VERTEX_ON_BCTETRAHEDRON = 4;
+const rg_INT NUM_VERTEX_ON_BCFACE = 3;
+const rg_INT NUM_VERTEX_ON_BCEDGE = 2;
+const rg_INT NUM_EDGE_ON_BCTETRAHEDRON = 6;
+const rg_INT NUM_EDGE_ON_BCFACE = 3;
+const rg_INT NUM_FACE_ON_BCTETRAHEDRON = 4;
+
+#endif
+
+

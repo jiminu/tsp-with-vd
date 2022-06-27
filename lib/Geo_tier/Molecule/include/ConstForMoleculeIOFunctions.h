@@ -1,0 +1,303 @@
+#ifndef _CONST_FOR_MOLECULE_IO_FUNCTIONS_H
+#define _CONST_FOR_MOLECULE_IO_FUNCTIONS_H
+
+#include "rg_Const.h"
+#include <string>
+
+
+
+namespace V {
+namespace GeometryTier {
+
+
+
+// MOLECULE FILE TYPES
+enum MoleculeFileType{ PDB_FILE, MOL2_FILE, MOL_FILE, RMC_CFG_FILE, PDBQ_FILE };
+
+const string PDB_FILE_EXTENSION_1("pdb");
+const string PDB_FILE_EXTENSION_2("ent");
+
+const string MOL2_FILE_EXTENSION("mol2");
+const string MOL_FILE_EXTENSION("mol");
+
+const string RMC_CFG_FILE_EXTENSION("cfg");
+
+const string PDBQ_FILE_EXTENSION("pdbq");
+
+
+// PDB RECORD TYPES
+const int PDB_RECORD_TYPE_ST_POS = 0;
+const int PDB_RECORD_TYPE_LENGTH = 6;
+
+const string PDB_RECORD_TYPE_MODEL  = "MODEL ";
+const string PDB_RECORD_TYPE_ENDMDL = "ENDMDL";
+const string PDB_RECORD_TYPE_ATOM   = "ATOM  ";
+const string PDB_RECORD_TYPE_HETATM = "HETATM";
+const string PDB_RECORD_TYPE_CONECT = "CONECT";
+const string PDB_RECORD_TYPE_HEADER = "HEADER";	
+const string PDB_RECORD_TYPE_SOURCE = "SOURCE";
+const string PDB_RECORD_TYPE_REMARK = "REMARK";
+const string PDB_RECORD_TYPE_TITLE	 = "TITLE ";
+const string PDB_RECORD_TYPE_SSBOND = "SSBOND";
+const string PDB_RECORD_TYPE_HELIX  = "HELIX ";
+const string PDB_RECORD_TYPE_SHEET  = "SHEET ";
+const string PDB_RECORD_TYPE_TURN   = "TURN  ";
+const string PDB_RECORD_TYPE_EXPDTA = "EXPDTA";
+const string PDB_RECORD_TYPE_CRYST  = "CRYST1";
+
+
+// MODEL RECORD
+const int PDB_MODEL_RECORD_SERIAL_ST_POS    = 10;
+const int PDB_MODEL_RECORD_SERIAL_LENGTH    =  4;
+
+
+// ATOM RECORD
+const int PDB_ATOM_RECORD_SERIAL_ST_POS     =  6;
+const int PDB_ATOM_RECORD_NAME_ST_POS       = 12;
+const int PDB_ATOM_RECORD_ALTLOC_ST_POS     = 16;
+const int PDB_ATOM_RECORD_RESNAME_ST_POS    = 17;
+const int PDB_ATOM_RECORD_CHAINID_ST_POS    = 21;
+const int PDB_ATOM_RECORD_RESSEQ_ST_POS     = 22;
+const int PDB_ATOM_RECORD_ICODE_ST_POS      = 26;
+const int PDB_ATOM_RECORD_X_ST_POS          = 30;
+const int PDB_ATOM_RECORD_Y_ST_POS          = 38;
+const int PDB_ATOM_RECORD_Z_ST_POS          = 46;
+const int PDB_ATOM_RECORD_OCCUPANCY_ST_POS  = 54;
+const int PDB_ATOM_RECORD_TEMPFACTOR_ST_POS = 60;
+const int PDB_ATOM_RECORD_SEGID_ST_POS      = 72;
+const int PDB_ATOM_RECORD_ELEMENT_ST_POS    = 76;
+const int PDB_ATOM_RECORD_CHARGE_ST_POS     = 79;
+
+const int PDB_ATOM_RECORD_SERIAL_LENGTH     =  5;
+const int PDB_ATOM_RECORD_NAME_LENGTH       =  4;
+const int PDB_ATOM_RECORD_ALTLOC_LENGTH     =  1;
+const int PDB_ATOM_RECORD_RESNAME_LENGTH    =  3;
+const int PDB_ATOM_RECORD_CHAINID_LENGTH    =  1;
+const int PDB_ATOM_RECORD_RESSEQ_LENGTH     =  4;
+const int PDB_ATOM_RECORD_ICODE_LENGTH      =  1;
+const int PDB_ATOM_RECORD_X_LENGTH          =  8;
+const int PDB_ATOM_RECORD_Y_LENGTH          =  8;
+const int PDB_ATOM_RECORD_Z_LENGTH          =  8;
+const int PDB_ATOM_RECORD_OCCUPANCY_LENGTH  =  6;
+const int PDB_ATOM_RECORD_TEMPFACTOR_LENGTH =  6;
+const int PDB_ATOM_RECORD_SEGID_LENGTH      =  4;
+const int PDB_ATOM_RECORD_ELEMENT_LENGTH    =  2;
+const int PDB_ATOM_RECORD_CHARGE_LENGTH     =  2;
+
+//  Y.Cho   2018.12.06  ---------------------------------
+const int PDBQ_ATOM_RECORD_PARTIAL_CHARGE_ST_POS = 70;
+const int PDBQ_ATOM_RECORD_PARTIAL_CHARGE_LENGTH = 6;
+//-------------------------------------------------------
+
+
+// CONNECT RECORD
+const int PDB_CONNECT_RECORD_ATM_SERIAL_ST_POS    =  6;
+const int PDB_CONNECT_RECORD_BATM_A_SERIAL_ST_POS = 11;
+const int PDB_CONNECT_RECORD_BATM_B_SERIAL_ST_POS = 16;
+const int PDB_CONNECT_RECORD_BATM_C_SERIAL_ST_POS = 21;
+const int PDB_CONNECT_RECORD_BATM_D_SERIAL_ST_POS = 26;
+
+const int PDB_CONNECT_RECORD_ATM_SERIAL_LENGTH    =  5;
+
+// HEADER RECORD
+const int PDB_HEADER_RECORD_DATE_ST_POS    =  50;
+
+const int PDB_HEADER_RECORD_DATE_LENGTH    =  9;
+
+
+// HELIX RECORD
+const int PDB_HELIX_RECORD_SERIAL_ST_POS        =  7;
+const int PDB_HELIX_RECORD_HELIX_ID_ST_POS      = 11;
+const int PDB_HELIX_RECORD_INIT_CHAIN_ID_ST_POS = 19;
+const int PDB_HELIX_RECORD_INIT_RES_SEQ_ST_POS  = 21;
+const int PDB_HELIX_RECORD_END_CHAIN_ID_ST_POS  = 31;
+const int PDB_HELIX_RECORD_END_RES_SEQ_ST_POS   = 33;
+const int PDB_HELIX_RECORD_HELIX_CLASS_ST_POS   = 38;
+const int PDB_HELIX_RECORD_COMMENTS_ST_POS      = 40;
+
+const int PDB_HELIX_RECORD_SERIAL_LENGTH        =  3;
+const int PDB_HELIX_RECORD_HELIX_ID_LENGTH      =  3;
+const int PDB_HELIX_RECORD_INIT_CHAIN_ID_LENGTH =  1;
+const int PDB_HELIX_RECORD_INIT_RES_SEQ_LENGTH  =  4;
+const int PDB_HELIX_RECORD_END_CHAIN_ID_LENGTH  =  1;
+const int PDB_HELIX_RECORD_END_RES_SEQ_LENGTH   =  4;
+const int PDB_HELIX_RECORD_HELIX_CLASS_LENGTH   =  2;
+const int PDB_HELIX_RECORD_COMMENTS_LENGTH      = 30;
+
+// SHEET RECORD
+const int PDB_SHEET_RECORD_STRAND_SERIAL_ST_POS  =  7;
+const int PDB_SHEET_RECORD_SHEET_ID_ST_POS       = 11;
+const int PDB_SHEET_RECORD_NUM_STRANDS_ST_POS    = 14;
+const int PDB_SHEET_RECORD_INIT_CHAIN_ID_ST_POS  = 21;
+const int PDB_SHEET_RECORD_INIT_RES_SEQ_ST_POS   = 22;
+const int PDB_SHEET_RECORD_END_CHAIN_ID_ST_POS   = 32;
+const int PDB_SHEET_RECORD_END_RES_SEQ_ST_POS    = 33;
+const int PDB_SHEET_RECORD_PARALLEL_ST_POS       = 38;
+const int PDB_SHEET_RECORD_CURR_ATOM_NAME_ST_POS = 41;
+const int PDB_SHEET_RECORD_CURR_CHAIN_ID_ST_POS  = 49;
+const int PDB_SHEET_RECORD_CURR_RES_SEQ_ST_POS   = 50;
+const int PDB_SHEET_RECORD_PREV_ATOM_NAME_ST_POS = 56;
+const int PDB_SHEET_RECORD_PREV_CHAIN_ID_ST_POS  = 64;
+const int PDB_SHEET_RECORD_PREV_RES_SEQ_ST_POS   = 66;
+
+const int PDB_SHEET_RECORD_STRAND_SERIAL_LENGTH  =  3;
+const int PDB_SHEET_RECORD_SHEET_ID_LENGTH       =  3;
+const int PDB_SHEET_RECORD_NUM_STRANDS_LENGTH    =  2;
+const int PDB_SHEET_RECORD_INIT_CHAIN_ID_LENGTH  =  1;
+const int PDB_SHEET_RECORD_INIT_RES_SEQ_LENGTH   =  4;
+const int PDB_SHEET_RECORD_END_CHAIN_ID_LENGTH   =  1;
+const int PDB_SHEET_RECORD_END_RES_SEQ_LENGTH    =  4;
+const int PDB_SHEET_RECORD_PARALLEL_LENGTH       =  2;
+const int PDB_SHEET_RECORD_CURR_ATOM_NAME_LENGTH =  4;
+const int PDB_SHEET_RECORD_CURR_CHAIN_ID_LENGTH  =  1;
+const int PDB_SHEET_RECORD_CURR_RES_SEQ_LENGTH   =  4;
+const int PDB_SHEET_RECORD_PREV_ATOM_NAME_LENGTH =  4;
+const int PDB_SHEET_RECORD_PREV_CHAIN_ID_LENGTH  =  1;
+const int PDB_SHEET_RECORD_PREV_RES_SEQ_LENGTH   =  4;
+
+// TURN RECORD
+const int PDB_TURN_RECORD_SERIAL_ST_POS        =  7;
+const int PDB_TURN_RECORD_TURN_ID_ST_POS       = 11;
+const int PDB_TURN_RECORD_INIT_CHAIN_ID_ST_POS = 19;
+const int PDB_TURN_RECORD_INIT_RES_SEQ_ST_POS  = 20;
+const int PDB_TURN_RECORD_END_CHAIN_ID_ST_POS  = 30;
+const int PDB_TURN_RECORD_END_RES_SEQ_ST_POS   = 31;
+const int PDB_TURN_RECORD_COMMENTS_ST_POS      = 40;
+
+const int PDB_TURN_RECORD_SERIAL_LENGTH        =  3;
+const int PDB_TURN_RECORD_TURN_ID_LENGTH       =  3;
+const int PDB_TURN_RECORD_INIT_CHAIN_ID_LENGTH =  1;
+const int PDB_TURN_RECORD_INIT_RES_SEQ_LENGTH  =  4;
+const int PDB_TURN_RECORD_END_CHAIN_ID_LENGTH  =  1;
+const int PDB_TURN_RECORD_END_RES_SEQ_LENGTH   =  4;
+const int PDB_TURN_RECORD_COMMENTS_LENGTH      = 30;
+
+
+
+
+
+// MOL2 RECORD TYPES
+
+const int MOL2_RECORD_RTI_ST_POS = 0;
+const int MOL2_RECORD_RTI_LENGTH = 9;
+
+const int MOL2_NUM_OF_ATOMS_ID = 0;
+const int MOL2_NUM_OF_BONDS_ID = 1;
+const int MOL2_NUM_OF_SUBST_ID = 2;
+const int MOL2_NUM_OF_FEAT_ID  = 3;
+
+
+
+const int MOL2_ATOM_INT_REC_SIZE  = 2;
+const int MOL2_ATOM_REAL_REC_SIZE = 4;
+const int MOL2_ATOM_STR_REC_SIZE  = 4;
+
+const int MOL2_ATOM_INT_REC_ATOM_ID    = 0;
+const int MOL2_ATOM_INT_REC_SUBST_ID   = 1;
+
+const int MOL2_ATOM_REAL_REC_X_COORD   = 0;
+const int MOL2_ATOM_REAL_REC_Y_COORD   = 1;
+const int MOL2_ATOM_REAL_REC_Z_COORD   = 2;
+const int MOL2_ATOM_REAL_REC_CHARGE    = 3;
+
+const int MOL2_ATOM_STR_REC_ATOM_NAME  = 0;
+const int MOL2_ATOM_STR_REC_ATOM_TYPE  = 1;
+const int MOL2_ATOM_STR_REC_SUBST_NAME = 2;
+const int MOL2_ATOM_STR_REC_STATUS_BIT = 3;
+
+
+
+const string MOL2_RECORD_TYPE_ALT_TYPE              = "@<TRIPOS>ALT_TYPE";
+const string MOL2_RECORD_TYPE_ANCHOR_ATOM           = "@<TRIPOS>ANCHOR_ATOM";
+const string MOL2_RECORD_TYPE_ASSOCIATED_ANNOTATION = "@<TRIPOS>ASSOCIATED_ANNOTATION";
+const string MOL2_RECORD_TYPE_ATOM                  = "@<TRIPOS>ATOM";
+const string MOL2_RECORD_TYPE_BOND                  = "@<TRIPOS>BOND";
+const string MOL2_RECORD_TYPE_CENTER_OF_MASS        = "@<TRIPOS>CENTER_OF_MASS";
+const string MOL2_RECORD_TYPE_CENTROID              = "@<TRIPOS>CENTROID";
+const string MOL2_RECORD_TYPE_COMMENT               = "@<TRIPOS>COMMENT";
+const string MOL2_RECORD_TYPE_CRYSIN                = "@<TRIPOS>CRYSIN";
+const string MOL2_RECORD_TYPE_DATA_FILE             = "@<TRIPOS>DATA_FILE";
+const string MOL2_RECORD_TYPE_DICT                  = "@<TRIPOS>DICT";
+const string MOL2_RECORD_TYPE_EXTENSION_POINT       = "@<TRIPOS>EXTENSION_POINT";
+const string MOL2_RECORD_TYPE_FF_PBC                = "@<TRIPOS>FF_PBC";
+const string MOL2_RECORD_TYPE_FFCON_ANGLE           = "@<TRIPOS>FFCON_ANGLE";
+const string MOL2_RECORD_TYPE_FFCON_DIST            = "@<TRIPOS>FFCON_DIST";
+const string MOL2_RECORD_TYPE_FFCON_MULTI           = "@<TRIPOS>FFCON_MULTI";
+const string MOL2_RECORD_TYPE_FFCON_RANGE           = "@<TRIPOS>FFCON_RANGE";
+const string MOL2_RECORD_TYPE_FFCON_TORSION         = "@<TRIPOS>FFCON_TORSION";
+const string MOL2_RECORD_TYPE_LINE                  = "@<TRIPOS>LINE";
+const string MOL2_RECORD_TYPE_LSPLANE               = "@<TRIPOS>LSPLANE";
+const string MOL2_RECORD_TYPE_MOLECULE              = "@<TRIPOS>MOLECULE";
+const string MOL2_RECORD_TYPE_NORMAL                = "@<TRIPOS>NORMAL";
+const string MOL2_RECORD_TYPE_QSAR_ALIGN_RULE       = "@<TRIPOS>QSAR_ALIGN_RULE";
+const string MOL2_RECORD_TYPE_RING_CLOSURE          = "@<TRIPOS>RING_CLOSURE";
+const string MOL2_RECORD_TYPE_ROTATABLE_BOND        = "@<TRIPOS>ROTATABLE_BOND";
+const string MOL2_RECORD_TYPE_SEARCH_DIST           = "@<TRIPOS>SEARCH_DIST";
+const string MOL2_RECORD_TYPE_SEARCH_OPTS           = "@<TRIPOS>SEARCH_OPTS";
+const string MOL2_RECORD_TYPE_SET                   = "@<TRIPOS>SET";
+const string MOL2_RECORD_TYPE_SUBSTRUCTURE          = "@<TRIPOS>SUBSTRUCTURE";
+const string MOL2_RECORD_TYPE_U_FEAT                = "@<TRIPOS>U_FEAT";
+const string MOL2_RECORD_TYPE_UNITY_ATOM_ATTR       = "@<TRIPOS>UNITY_ATOM_ATTR";
+const string MOL2_RECORD_TYPE_UNITY_BOND_ATTR       = "@<TRIPOS>UNITY_BOND_ATTR";
+
+const string MOL2_MOL_TYPE_SMALL        = "SMALL";
+const string MOL2_MOL_TYPE_BIOPOLYMER   = "BIOPOLYMER";
+const string MOL2_MOL_TYPE_PROTEIN      = "PROTEIN";
+const string MOL2_MOL_TYPE_NUCLEIC_ACID = "NUCLEIC_ACID";
+const string MOL2_MOL_TYPE_SACCHARIDE   = "SACCHARIDE";
+
+
+
+// CT MOL FILE
+
+const int MOL_NUM_OF_LINES_IN_HEADER_BLOCK      = 3;
+
+
+// COUNTS LINE
+const int MOL_COUNTS_LINE_ST_POS_NUM_ATOMS      = 0;
+const int MOL_COUNTS_LINE_LENGTH_NUM_ATOMS      = 3;
+
+const int MOL_COUNTS_LINE_ST_POS_NUM_BONDS      = 3;
+const int MOL_COUNTS_LINE_LENGTH_NUM_BONDS      = 3;
+
+const int MOL_COUNTS_LINE_ST_POS_NUM_ATOM_LISTS = 6;
+const int MOL_COUNTS_LINE_LENGTH_NUM_ATOM_LISTS = 3;
+
+
+// ATOM BLOCK
+const int MOL_ATOM_BLOCK_ST_POS_X_COORD         = 0;
+const int MOL_ATOM_BLOCK_LENGTH_X_COORD         = 10;
+
+const int MOL_ATOM_BLOCK_ST_POS_Y_COORD         = 10;
+const int MOL_ATOM_BLOCK_LENGTH_Y_COORD         = 10;
+
+const int MOL_ATOM_BLOCK_ST_POS_Z_COORD         = 20;
+const int MOL_ATOM_BLOCK_LENGTH_Z_COORD         = 10;
+
+const int MOL_ATOM_BLOCK_ST_POS_ATOM_SYMBOL     = 31;
+const int MOL_ATOM_BLOCK_LENGTH_ATOM_SYMBOL     = 3;
+
+
+// BOND BLOCK
+const int MOL_BOND_BLOCK_ST_POS_FIRST_ATOM      = 0;
+const int MOL_BOND_BLOCK_LENGTH_FIRST_ATOM      = 3;
+
+const int MOL_BOND_BLOCK_ST_POS_SECOND_ATOM     = 3;
+const int MOL_BOND_BLOCK_LENGTH_SECOND_ATOM     = 3;
+
+const int MOL_BOND_BLOCK_ST_POS_BOND_TYPE       = 6;
+const int MOL_BOND_BLOCK_LENGTH_BOND_TYPE       = 3;
+
+const int MOL_BOND_BLOCK_ST_POS_BOND_STEREO     = 9;
+const int MOL_BOND_BLOCK_LENGTH_BOND_STEREO     = 3;
+
+
+
+
+} // namespace GeometryTier
+} // namespace V
+
+
+#endif
+
+
