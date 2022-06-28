@@ -5,12 +5,15 @@
 #include<map>
 #include<ctime>
 #include "city.h"
+#include <VoronoiDiagram2DC.h>
 
 using std::vector;
 using std::map;
 using std::multimap;
 using std::pair;
 using std::string;
+
+using namespace V::GeometryTier;
 
 class HeuristicAlgorithm {
     private:
@@ -31,7 +34,7 @@ class HeuristicAlgorithm {
         string m_savePath = "./../data/";
         string m_saveFile = m_mutation + ".txt";
     
-
+        VoronoiDiagram2DC m_VD;
         vector<City> m_cities;
         pair<float, vector<int>> m_bestSolution = {0, {}};
         int m_currGeneration = 0;
@@ -52,7 +55,7 @@ class HeuristicAlgorithm {
         void mutation(pair<float, vector<int>>& offspring);
         
         void generate_vd();
-        
+        vector<pair<float, vector<int>>> initialize_chromosome_with_VD(const int& population);
         
         
         void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);

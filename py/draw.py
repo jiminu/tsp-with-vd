@@ -3,7 +3,7 @@ import numpy as np
 import math
 
 def read_point(name) :
-    path = '/home/jiminu/code/tsp-with-vd/data/point.txt'
+    path = 'c:/code/voronoi_dg/data/voronoi_test.txt'
     li = []
     i = 0
     with open (path, 'r') as f :
@@ -20,7 +20,7 @@ def read_point(name) :
     return li
 
 def read_answer(name) :
-    path = '/home/jiminu/code/tsp-with-vd/data/' + name
+    path = 'c:/code/voronoi_dg/data/' + name
     li = []
     info = []
     i = 0

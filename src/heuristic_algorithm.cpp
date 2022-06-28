@@ -1,6 +1,4 @@
 #include "heuristic_algorithm.h"
-// #include <VoronoiDiagramCIC.h>
-#include "VoronoiDiagram2DC.h"
 
 #include <time.h>
 
@@ -10,13 +8,13 @@
 
 #include "file_stream.h"
 
-using namespace V::GeometryTier;
-
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
     generate_cities();
     // generate_distance_matrix();
     generate_vd();
+    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
+    
     // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
     // for (int i = 0; i < m_generation; ++i) {
     //     populations = selection(populations);
@@ -60,16 +58,41 @@ void HeuristicAlgorithm::generate_vd() {
         circles.push_back(circle);
     }
     
-    VoronoiDiagram2DC VD;
-    VD.constructVoronoiDiagram(circles);
-    list<VEdge2D*> edges;
-    VD.getVoronoiEdges(edges);
-    
-    list<VEdge2D*> tempEdges;
-    edges.front()->getLeftFace()->getBoundaryVEdges(tempEdges);
-    std::cout<< tempEdges.size() <<endl;
+    m_VD.constructVoronoiDiagram(circles);
 };
 
+vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
+    vector<pair<float, vector<int>>> chromosomes;
+    
+    list<VFace2D*> faces; 
+    list<VEdge2D*> edges; 
+    list<Generator2D*> generators; 
+
+    m_VD.getGenerators(generators);
+    m_VD.getVoronoiFaces(faces);
+    m_VD.getVoronoiEdges(edges);
+        
+    list<VEdge2D*> resultEdges;
+    m_VD.getVoronoiEdges(resultEdges);
+    
+    for (const auto& face : faces) {
+        list<VEdge2D*> edges;
+        face->getBoundaryVEdges(edges);
+        
+        resultEdges.push_back(edges.front());        
+    }
+    
+    FileStream file;
+    file.write_to_edge("a", resultEdges);
+    file.write_to_face("a", faces);
+    // for (int i = 0; i < m_VD.size(); ++i) {
+    //     int randomNum = generate_random_int(0, m_cities.size());
+        
+    //     std::cout << m_
+    // }
+    
+    return chromosomes;
+}
 
 
 // improved edge recombination crossover
