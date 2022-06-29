@@ -112,84 +112,199 @@ void FileStream::write_to_edge(const string& fileName, const list<VEdge2D*>& edg
 
 void FileStream::write_to_face(const string& fileName, const list<VFace2D*>& face) {
     std::ofstream fout("./../data/answer_voronoi_face.txt");
-    
+    int count = 0;
+    VFace2D* test;
     multimap<int, VFace2D*> chainCountEdges;
+    multimap<VFace2D*, VFace2D*> connectedChain;
+    map<VFace2D*, int> connectedFaces;
     
     vector<VFace2D*> faceVector(++face.begin(), face.end());
-    std::random_device rd;
-    std::mt19937 g(rd());
-    std::shuffle(faceVector.begin(), faceVector.end(), g);
+    // std::random_device rd;
+    // std::mt19937 g(rd());
+    // std::shuffle(faceVector.begin(), faceVector.end(), g);
+    
     
     for (const auto& face : faceVector) {
         chainCountEdges.insert({0, face});
+        connectedChain.insert({face, face});
     }
     
-    for (const auto& face : faceVector) {
-        VFace2D* currFace = face;
+    std::cout << "0 : " << chainCountEdges.count(0) << std::endl;
+    std::cout << "1 : " << chainCountEdges.count(1) << std::endl;
+    std::cout << "2 : " << chainCountEdges.count(2) << std::endl;
+    std::cout << "3 : " << chainCountEdges.count(3) << "\n" << std::endl;
+
+    while (chainCountEdges.count(0) > 0) {
+        VFace2D* currFace = chainCountEdges.lower_bound(0)->second;
 
         list<VEdge2D*> boundaryEdges;
-        face->getBoundaryVEdges(boundaryEdges);
-        map<float, VFace2D*> otherFaces;
-        
+        currFace->getBoundaryVEdges(boundaryEdges);
+        map<float, VFace2D*> boundaryFaces;
+
         for (const auto& boundaryEdge : boundaryEdges) {
             if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
-                boundaryEdge->getLeftFace() ->getGenerator() == 0) {
+                boundaryEdge->getLeftFace()->getGenerator() == 0) {
                 continue;
             }
 
             double dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
                           .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
+
             if (boundaryEdge->getLeftFace() == currFace) {
-                otherFaces.insert({dist, boundaryEdge->getRightFace()});
+                boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
+            } 
+            
+            else {
+                boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
+            }
+        }
+        
+        for (auto target = boundaryFaces.begin(); target != boundaryFaces.end(); ++target) {
+            VFace2D* targetFace = target->second;
+
+            if (check_same_chain(currFace, targetFace, connectedChain)) continue;
+            if (check_target_face_state(targetFace, connectedFaces)) continue;
+            
+            connect_chain(currFace, targetFace, chainCountEdges, connectedChain, connectedFaces);
+            fout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << ","
+                 << targetFace->getGenerator()->getDisk().getX() << "," << targetFace->getGenerator()->getDisk().getY() << "\n";
+            ++count;
+            break;
+        }
+    }
+    
+    std::cout << "0 connected done : " << count << std::endl;
+    std::cout << "0 : " << chainCountEdges.count(0) << std::endl;
+    std::cout << "1 : " << chainCountEdges.count(1) << std::endl;
+    std::cout << "2 : " << chainCountEdges.count(2) << std::endl;
+    std::cout << "3 : " << chainCountEdges.count(3) << "\n" << std::endl;
+    
+    int gg = 0;
+        
+    while (chainCountEdges.count(1) > 0) {
+        VFace2D* currFace = chainCountEdges.lower_bound(1)->second;
+
+        list<VEdge2D*> boundaryEdges;
+        currFace->getBoundaryVEdges(boundaryEdges);
+        map<float, VFace2D*> boundaryFaces;
+
+        for (const auto& boundaryEdge : boundaryEdges) {
+            if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
+                boundaryEdge->getLeftFace()->getGenerator() == 0) {
+                continue;
+            }
+
+            double dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
+                          .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
+
+            if (boundaryEdge->getLeftFace() == currFace) {
+                boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
             }
 
             else {
-                otherFaces.insert({dist, boundaryEdge->getLeftFace()});
+                boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
             }
         }
-        VFace2D* targetFace = otherFaces.begin()->second;
 
-        // NOTE: check node include two edges.
-        // NOTE: check current node contain edge chain already.        
+        for (auto target = boundaryFaces.begin(); target != boundaryFaces.end(); ++target) {
+            VFace2D* targetFace = target->second;
+            
+            if (count == 700) {
+                test = targetFace;
+                std::cout << "700 ID : " << targetFace->getID() << std::endl;
+                std::cout << "700 boundary face : " << targetFace->getGenerator()->getDisk().getX() << ", " << targetFace->getGenerator()->getDisk().getY() << std::endl;
+            }
+            if (count == 700 && check_same_chain(currFace, targetFace, connectedChain)) {std::cout << "700 same chain" << std::endl; continue;}
+            if (count == 700 && check_target_face_state(targetFace, connectedFaces)) std::cout << "700 target" << std::endl;
+            if (count == 700) std::cout << "aaaaaaaa" << std::endl;
+            if (check_same_chain(currFace, targetFace, connectedChain) || check_target_face_state(targetFace, connectedFaces)) continue;
 
-        fout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << "," 
-        << otherFaces.begin()->second->getGenerator()->getDisk().getX() << "," << otherFaces.begin()->second->getGenerator()->getDisk().getY() << "\n";
+            ++count;
+            connect_chain(currFace, targetFace, chainCountEdges, connectedChain, connectedFaces);
+            fout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << ","
+                 << targetFace->getGenerator()->getDisk().getX() << "," << targetFace->getGenerator()->getDisk().getY() << "\n";
+            
+            if (count == 701) {
+            std::cout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << ","
+                 << targetFace->getGenerator()->getDisk().getX() << "," << targetFace->getGenerator()->getDisk().getY() << "\n";    
+            }
+            break;
+        }
+        
+        gg++;
+        if (gg > 1000) break;
     }
     fout.close();
+    
+    std::ofstream fout2("./../data/checkPoint.txt");
+    for (auto it = chainCountEdges.lower_bound(1); it != chainCountEdges.upper_bound(1); ++it) {
+        fout2 << it->second->getGenerator()->getDisk().getX() << "," << it->second->getGenerator()->getDisk().getY() << "\n";
+    }
+    fout2.close();
+    
+    
+    for (auto it = connectedChain.lower_bound(test); it != connectedChain.upper_bound(test); ++it) {
+        std::cout << it->first->getID() << " : " << it->second->getID() << std::endl;
+    }
+    
+    std::cout << "1 connected done : " << count << std::endl;
+    std::cout << "0 : " << chainCountEdges.count(0) << std::endl;
+    std::cout << "1 : " << chainCountEdges.count(1) << std::endl;
+    std::cout << "2 : " << chainCountEdges.count(2) << std::endl;
+    std::cout << "3 : " << chainCountEdges.count(3) << "\n" << std::endl;
+}
 
-    // for (const auto& it : face) {
-    //     if (firstRun) {
-    //         firstRun = false;
-    //         continue;
-    //     }
-    //     auto currFace = it;
-        
-        
-    //     list<VEdge2D*> temp;
-    //     it->getBoundaryVEdges(temp);
+bool FileStream::check_same_chain(VFace2D* currFace, VFace2D* targetFace, multimap<VFace2D*, VFace2D*>& connectedChain) {
+    for (auto connectedFace = connectedChain.lower_bound(currFace); connectedFace != connectedChain.upper_bound(currFace); ++connectedFace) {
+        if (targetFace == connectedFace->second) {
+            // std::cout << "same" << std::endl;
+            return true;
+        }
+    }
+    return false;
+}
 
-    //     map<float, VFace2D*> tempFaces;
-        
-    //     for (const auto& i : temp) {
-    //         if (i->getRightFace()->getGenerator() == 0) {
-    //             continue;
-    //         }
-              
-    //         double dist = i->getLeftFace()->getGenerator()->getDisk().getCenterPt()
-    //                         .distance(i->getRightFace()->getGenerator()->getDisk().getCenterPt());
-    //         if (i->getLeftFace() == currFace) {
-    //             tempFaces.insert({dist, i->getRightFace()});
-    //         }
-            
-    //         else {
-    //             tempFaces.insert({dist, i->getLeftFace()});
-    //         }
-    //     }
-        
-    //     fout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << "," <<
-    //     tempFaces.begin()->second->getGenerator()->getDisk().getX() << "," << tempFaces.begin()->second->getGenerator()->getDisk().getY() << "\n";
-    // }
-    // fout.close();
+bool FileStream::check_target_face_state(VFace2D* targetFace, map<VFace2D*, int>& connectedFaces) {
+    if (connectedFaces[targetFace] == 2) {
+        return true;
+    }
+    return false;
+}
+
+void FileStream::connect_chain(VFace2D* currFace,
+                               VFace2D* targetFace,
+                               multimap<int, VFace2D*>& chainCountEdges,
+                               multimap<VFace2D*, VFace2D*>& connectedChain,
+                               map<VFace2D*, int>& connectedFaces) {
+    int currentConnectedNode = connectedFaces[currFace];
+    int targetConnectedNode = connectedFaces[targetFace];
+    connectedFaces[currFace] = currentConnectedNode + 1;
+    connectedFaces[targetFace] = targetConnectedNode + 1;
+    
+    for (auto it = chainCountEdges.lower_bound(currentConnectedNode); it != chainCountEdges.upper_bound(currentConnectedNode); ++it) {
+        if (currFace == it->second) {
+            chainCountEdges.erase(it);
+            break;
+        }
+    }
+    for (auto it = chainCountEdges.lower_bound(targetConnectedNode); it != chainCountEdges.upper_bound(targetConnectedNode); ++it) {
+        if (targetFace == it->second) {
+            chainCountEdges.erase(it);
+            break;
+        }
+    }
+    
+    chainCountEdges.insert({currentConnectedNode+1, currFace});
+    chainCountEdges.insert({targetConnectedNode+1, targetFace});
+    
+    for (auto it = connectedChain.lower_bound(targetFace); it != connectedChain.upper_bound(targetFace); ++it ) {
+        connectedChain.insert({currFace, it->second});
+    }
+    for (auto it = connectedChain.lower_bound(currFace); it != connectedChain.upper_bound(currFace); ++it ) {
+        connectedChain.insert({targetFace, it->second});
+    }
+    
+    
 }
 
 // City FileStream::split_xy(const string& str) {

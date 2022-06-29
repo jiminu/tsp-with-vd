@@ -9,6 +9,7 @@ using namespace V::GeometryTier;
 
 int main(int, char**) {
     HeuristicAlgorithm heuristic;
+
     
     std::cout << "Hello, world!\n";
 }
