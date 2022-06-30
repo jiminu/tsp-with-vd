@@ -11,38 +11,16 @@
 FileStream::FileStream() {
 }
 
-// void FileStream::read(const string& fileName) {
-//     std::ifstream file(fileName);
-//     int run = 0;
-//     string line;
-    
-//     if(file) {
-//         while(std::getline(file, line)) {
-//             if (file.eof()) break;
-//             if (run < 6) {
-//                 ++run;
-//                 continue;
-//             }
-//             m_citiesVector.push_back(split_xy(line));
-//         }
-//         file.close();
-//     }
-//     else {
-//         std::cout << "file open fail" << std::endl;
-//         exit(0);
-//     }
-// }
-
 void FileStream::read(const string& fileName) {
-    std:: ifstream file(fileName);
-    bool firstRun = true;
+    std::ifstream file(fileName);
+    int run = 0;
     string line;
     
     if(file) {
         while(std::getline(file, line)) {
             if (file.eof()) break;
-            if (firstRun) {
-                firstRun = false;
+            if (run < 6) {
+                ++run;
                 continue;
             }
             m_citiesVector.push_back(split_xy(line));
@@ -54,6 +32,28 @@ void FileStream::read(const string& fileName) {
         exit(0);
     }
 }
+
+// void FileStream::read(const string& fileName) {
+//     std:: ifstream file(fileName);
+//     bool firstRun = true;
+//     string line;
+    
+//     if(file) {
+//         while(std::getline(file, line)) {
+//             if (file.eof()) break;
+//             if (firstRun) {
+//                 firstRun = false;
+//                 continue;
+//             }
+//             m_citiesVector.push_back(split_xy(line));
+//         }
+//         file.close();
+//     }
+//     else {
+//         std::cout << "file open fail" << std::endl;
+//         exit(0);
+//     }
+// }
 
 void FileStream::read_distance_matrix(const string& fileName) {
     std::ifstream file(fileName);
@@ -120,9 +120,9 @@ void FileStream::write_to_face(const string& fileName, const list<VFace2D*>& fac
     map<VFace2D*, int> connectedFaces;
     
     vector<VFace2D*> faceVector(face.begin(), face.end());
-    // std::random_device rd;
-    // std::mt19937 g(rd());
-    // std::shuffle(faceVector.begin(), faceVector.end(), g);
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(faceVector.begin(), faceVector.end(), g);
     
     
     for (const auto& face : faceVector) {
@@ -197,8 +197,11 @@ void FileStream::write_to_face(const string& fileName, const list<VFace2D*>& fac
             currFace = currFaceIter->second;
         }
         status = false;
-        if (chainCountEdges.count(2) > 1 && connectedChain.size() == 1) break;
-        
+        if (chainCountEdges.count(2) > 1 && connectedChain.size() == 1) {
+            fout << connectedChain[0].front()->getGenerator()->getDisk().getX() << "," << connectedChain[0].front()->getGenerator()->getDisk().getY() << ","
+                 << connectedChain[0].back()->getGenerator()->getDisk().getX() << "," << connectedChain[0].back()->getGenerator()->getDisk().getY() << "\n";
+            break;
+        }
         
         // if (currFaceIter == chainCountEdges.end()) {
         //     currFaceIter = chainCountEdges.begin();
@@ -456,31 +459,31 @@ void FileStream::connect_chain(VFace2D* currFace,
     }
 }
 
-// City FileStream::split_xy(const string& str) {
-//     City city;
-    
-//     city.x = std::stof(str.substr(4, 3));
-//     city.y = std::stof(str.substr(8, 3));
-    
-//     return city;
-// }
-
-City FileStream::split_xy(const string& str)  {
-    std::istringstream split_str(str); 
-    string buffer;
+City FileStream::split_xy(const string& str) {
     City city;
-    int i = 0;
-    while(std::getline(split_str, buffer, '\t')) {
-        if(i == 1) {
-            city.x = stof(buffer);
-        }
-        else if(i == 2) {
-            city.y = stof(buffer);
-        }
-        ++i;
-    }
+    
+    city.x = std::stof(str.substr(4, 3));
+    city.y = std::stof(str.substr(8, 3));
+    
     return city;
 }
+
+// City FileStream::split_xy(const string& str)  {
+//     std::istringstream split_str(str); 
+//     string buffer;
+//     City city;
+//     int i = 0;
+//     while(std::getline(split_str, buffer, '\t')) {
+//         if(i == 1) {
+//             city.x = stof(buffer);
+//         }
+//         else if(i == 2) {
+//             city.y = stof(buffer);
+//         }
+//         ++i;
+//     }
+//     return city;
+// }
 
 vector<City>& FileStream::get_cities() {
     return m_citiesVector;

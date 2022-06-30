@@ -87,7 +87,7 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     }
     
     FileStream file;
-    file.write_to_edge("a", resultEdges);
+    file.write_to_edge("a", edges);
     file.write_to_face("a", faces);
     // for (int i = 0; i < m_VD.size(); ++i) {
     //     int randomNum = generate_random_int(0, m_cities.size());
