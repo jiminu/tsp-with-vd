@@ -6,6 +6,7 @@
 #include<ctime>
 #include "city.h"
 #include <VoronoiDiagram2DC.h>
+#include <VoronoiDiagramCIC.h>
 
 using std::vector;
 using std::map;
@@ -34,7 +35,8 @@ class HeuristicAlgorithm {
         string m_savePath = "./../data/";
         string m_saveFile = m_mutation + ".txt";
     
-        VoronoiDiagram2DC m_VD;
+        // VoronoiDiagram2DC m_VD;
+        VoronoiDiagramCIC m_VD;
         vector<City> m_cities;
         pair<float, vector<int>> m_bestSolution = {0, {}};
         int m_currGeneration = 0;

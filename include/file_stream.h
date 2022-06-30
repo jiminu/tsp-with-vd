@@ -43,12 +43,12 @@ public :
 private :
     // method
     City split_xy(const string& str);
-    bool check_same_chain(VFace2D* currFace, VFace2D* targetFace, multimap<VFace2D*, VFace2D*>& connectedChain);
+    bool check_same_chain(VFace2D* currFace, VFace2D* targetFace, vector<list<VFace2D*>>& connectedChain);
     bool check_target_face_state(VFace2D* targetFace, map<VFace2D*, int>& connectedFaces);
     void connect_chain(VFace2D* currFace,
                        VFace2D* targetFace,
                        multimap<int, VFace2D*>& chainCountEdges,
-                       multimap<VFace2D*, VFace2D*>& connectedChain,
+                       vector<list<VFace2D*>>& connectedChain,
                        map<VFace2D*, int>& connectedFaces
     );
 };

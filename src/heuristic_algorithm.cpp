@@ -58,7 +58,8 @@ void HeuristicAlgorithm::generate_vd() {
         circles.push_back(circle);
     }
     
-    m_VD.constructVoronoiDiagram(circles);
+    // m_VD.constructVoronoiDiagram(circles);
+    m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
 };
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
@@ -71,7 +72,10 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     m_VD.getGenerators(generators);
     m_VD.getVoronoiFaces(faces);
     m_VD.getVoronoiEdges(edges);
-        
+
+    auto a = m_VD.getContainerGenerator();
+
+    faces.pop_front();
     list<VEdge2D*> resultEdges;
     m_VD.getVoronoiEdges(resultEdges);
     
