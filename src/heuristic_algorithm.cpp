@@ -19,10 +19,23 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
     // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
     float end = clock();
+    vector<float> info = {m_selectionPressure, 
+                          m_crossoverParameter, 
+                          m_mutationParameter, 
+                          float(m_population), 
+                          float(m_generation),
+                          m_eliteProportion, 
+                          result / CLOCKS_PER_SEC};
+    save_best_solution(info);
     std::cout << "initialize chromosome time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+
+    for (auto it : populations) {
+        std::cout << it.first << std::endl;
+    }
+
     for (int i = 0; i < m_generation; ++i) {
-        populations = selection(populations);
-        populations = crossover(populations);
+        // populations = selection(populations);
+        // populations = crossover(populations);
         
         m_currGeneration = i;
         // if (i % 100 == 0) {
@@ -31,7 +44,7 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     }
     end = clock();
     result = end - start;
-    vector<float> info = {m_selectionPressure, 
+    info = {m_selectionPressure, 
                           m_crossoverParameter, 
                           m_mutationParameter, 
                           float(m_population), 
