@@ -3,7 +3,24 @@ import numpy as np
 import math
 
 def read_point(name) :
-    path = 'c:/code/voronoi_dg/data/voronoi_test.txt'
+    path = name
+    li = []
+    i = 0
+    with open (path, 'r') as f :
+        for line in f :
+            if line == 'EOF' :
+                break
+            if i < 1 :
+                i += 1
+                continue
+            xy = line.split('\t')
+            li.append([])
+            li[-1].append(float(xy[1]))
+            li[-1].append(float(xy[2]))
+    return li
+
+def read_tsp_point(name) :
+    path = name
     li = []
     i = 0
     with open (path, 'r') as f :
@@ -20,7 +37,7 @@ def read_point(name) :
     return li
 
 def read_answer(name) :
-    path = 'c:/code/voronoi_dg/data/' + name
+    path = name
     li = []
     info = []
     i = 0

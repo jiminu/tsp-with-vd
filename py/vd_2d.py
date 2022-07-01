@@ -24,6 +24,37 @@ def read_point(file_path) :
             li[-1].append(float(y))
     return li
 
+def read_tsp_point(name) :
+    path = name
+    li = []
+    i = 0
+    with open (path, 'r') as f :
+        for line in f :
+            if line == 'EOF' :
+                break
+            if i < 7 :
+                i += 1
+                continue
+            li.append(float(line[4:7]))
+            li.append(float(line[8:11]))
+    return li
+
+def read_answer(name) :
+    path = name
+    li = []
+    info = []
+    i = 0
+    with open (path, 'r') as f :
+        for line in f :
+            if i < 8 :
+                i += 1
+                info.append(line)
+                continue
+            li.append([])
+            x = line
+            li[-1].append(int(x))
+    return info, li
+
 def read_vertex(file_path) :
     """ read vertex from *.txt file.
 
@@ -144,26 +175,46 @@ def draw_line(_list, _color = 'black' ,_line_style = 'solid', _line_width = 0.5)
 import draw as draw
    
 if __name__ == '__main__' :
-    plt.axes().set_aspect('equal')  # xy 비율
-    plt.xlim(-150000, 150000)
-    plt.ylim(-150000, 150000)
-    read_path = '.\\data\\point.txt'
-    vertex_path = '.\\data\\answer_voronoi_vertex.txt'
-    edge_path = '/home/jiminu/code/tsp-with-vd/data/answer_voronoi_edge.txt'
-    face_path = '.\\data\\answer_voronoi_face.txt'
+    # plt.axes().set_aspect('equal')  # xy 비율
     
-    temp_path = '/home/jiminu/code/tsp-with-vd/data/answer_voronoi_face.txt'
+    read_path = './data/tsp_data.txt'
+    vertex_path = './data/answer_voronoi_vertices.txt'
+    edge_path = './data/answer_voronoi_edge.txt'
+    face_path = './data/answer_voronoi_face.txt'
+    answer_path = './data/result.txt'
     
-    # li = read_point(read_path)
-    # vertices = read_vertex(vertex_path)
-    edge = read_edge(edge_path)
-    tem = read_edge(temp_path)
-    # face = read_face(face_path)
+    
+    generate = read_tsp_point(read_path)
+    vertices = read_vertex(vertex_path)
+    edges = read_edge(edge_path)
+    faces = read_face(face_path)
+    
+    x_min = 0 
+    x_max = 0
+    y_min = 0
+    y_max = 0
+    
+    for i in generate :
+        if x_min > faces[int(i)][0] :
+            x_min = faces[int(i)][0]
+        if x_max < faces[int(i)][0] :
+            x_max = faces[int(i)][0]
+        if y_min > faces[int(i)][1] :
+            y_min = faces[int(i)][1]
+        if y_max < faces[int(i)][1] :
+            y_max = faces[int(i)][1]
+            
+    plt.xlim(x_min, x_max)
+    plt.ylim(y_min, y_max)
+    
+    _, answer = read_answer(answer_path)
+    
+    
     
     # draw_coordinate(li, _s = 30)
     # draw_coordinate(vertices, 'r', 5, _alpha = 0.5, _marker = 'v')
-    draw_line(edge)
-    draw_line(tem, 'green', _line_width = 2)
+    draw_line(edges)
+    draw_coordinate(faces, 'blue', 20)
     # draw_line(unbounded_edge, 'red', 'dotted')
     # draw_arrow(edge)
     # draw_arrow(unbounded_edge, 'red', 'dotted')
@@ -181,17 +232,17 @@ if __name__ == '__main__' :
     # draw.draw_coordinate([face[int(result[-1][0])]], 'red', 10)
     
     
-    # result_line = []
-    # for i in range(len(result)-1) :
-    #     index = int(result[i][0])
-    #     index2 = int(result[i+1][0])
-    #     result_line.append([])
-        # result_line[-1].append(face[index][0])
-        # result_line[-1].append(face[index][1])
-        # result_line[-1].append(face[index2][0])
-        # result_line[-1].append(face[index2][1])
+    result_line = []
+    for i in range(len(answer)-1) :
+        index = int(answer[i][0])
+        index2 = int(answer[i+1][0])
+        result_line.append([])
+        result_line[-1].append(faces[index][0])
+        result_line[-1].append(faces[index][1])
+        result_line[-1].append(faces[index2][0])
+        result_line[-1].append(faces[index2][1])
         
-    # draw_line(result_line, 'green', _line_width = 2)
+    draw_line(result_line, 'green', _line_width = 2)
     # ====================================
     
     

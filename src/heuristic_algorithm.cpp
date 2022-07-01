@@ -14,35 +14,33 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     // generate_distance_matrix();
     generate_vd();
     vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
-    
-    // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
-    // for (int i = 0; i < m_generation; ++i) {
-    //     populations = selection(populations);
-    //     populations = crossover(populations);
+    for (int i = 0; i < m_generation; ++i) {
+        populations = selection(populations);
+        populations = crossover(populations);
         
-    //     m_currGeneration = i;
-    //     if (i % 1000 == 0) {
-    //         std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-    //     }
-    // }
-    // end = clock();
-    // result = end - start;
-    // vector<float> info = {m_selectionPressure, 
-    //                       m_crossoverParameter, 
-    //                       m_mutationParameter, 
-    //                       float(m_population), 
-    //                       float(m_generation),
-    //                       m_eliteProportion, 
-    //                       result / CLOCKS_PER_SEC};
+        m_currGeneration = i;
+        // if (i % 100 == 0) {
+            std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
+        // }
+    }
+    end = clock();
+    result = end - start;
+    vector<float> info = {m_selectionPressure, 
+                          m_crossoverParameter, 
+                          m_mutationParameter, 
+                          float(m_population), 
+                          float(m_generation),
+                          m_eliteProportion, 
+                          result / CLOCKS_PER_SEC};
     
-    // std::cout << "fitness : " << m_bestSolution.first << std::endl;
-    // for (const auto& it : m_bestSolution.second) {
-    //     std::cout << it << " -> ";
-    // }
-    // std::cout << m_bestSolution.second[0] << std::endl;
-    // std::cout << "runtime : " << result / CLOCKS_PER_SEC << "s" << std::endl;
-    // std::cout << "best solution : " << m_bestSolution.first << std::endl;
-    // save_best_solution(info);
+    std::cout << "fitness : " << m_bestSolution.first << std::endl;
+    for (const auto& it : m_bestSolution.second) {
+        std::cout << it << " -> ";
+    }
+    std::cout << m_bestSolution.second[0] << std::endl;
+    std::cout << "runtime : " << result / CLOCKS_PER_SEC << "s" << std::endl;
+    std::cout << "best solution : " << m_bestSolution.first << std::endl;
+    save_best_solution(info);
 }
 
 HeuristicAlgorithm::~HeuristicAlgorithm() {
@@ -60,44 +58,235 @@ void HeuristicAlgorithm::generate_vd() {
     
     // m_VD.constructVoronoiDiagram(circles);
     m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    
+    string face_path = "./../data/answer_voronoi_faces.txt";
+    string edge_path = "./../data/answer_voronoi_edges.txt";
+    string vertex_path = "./../data/answer_voronoi_vertices.txt";
+    
+    list<VFace2D*> faces; 
+    list<VEdge2D*> edges; 
+    list<VVertex2D*> vertices; 
+
+    m_VD.getVoronoiFaces(faces);
+    m_VD.getVoronoiEdges(edges);
+    m_VD.getVoronoiVertices(vertices);
+    faces.pop_front();
+    
+    save_face(face_path, faces);
+    save_edge(edge_path, edges);
+    save_vertex(vertex_path, vertices);
 };
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
     vector<pair<float, vector<int>>> chromosomes;
     
     list<VFace2D*> faces; 
-    list<VEdge2D*> edges; 
-    list<Generator2D*> generators; 
 
-    m_VD.getGenerators(generators);
     m_VD.getVoronoiFaces(faces);
-    m_VD.getVoronoiEdges(edges);
-
-    auto a = m_VD.getContainerGenerator();
 
     faces.pop_front();
-    list<VEdge2D*> resultEdges;
-    m_VD.getVoronoiEdges(resultEdges);
     
-    for (const auto& face : faces) {
-        list<VEdge2D*> edges;
-        face->getBoundaryVEdges(edges);
-        
-        resultEdges.push_back(edges.front());        
+    for (int i = 0; i < population; ++i) {
+        vector<int> tempPath = generate_chromosome(faces);
+        chromosomes.push_back({evaluate_function(tempPath), tempPath});
     }
-    
-    FileStream file;
-    file.write_to_edge("a", edges);
-    file.write_to_face("a", faces);
-    // for (int i = 0; i < m_VD.size(); ++i) {
-    //     int randomNum = generate_random_int(0, m_cities.size());
-        
-    //     std::cout << m_
-    // }
     
     return chromosomes;
 }
 
+vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces) {
+    vector<int> result;
+    
+    bool status = false;
+    multimap<int, VFace2D*> chainCountEdges;
+    vector<list<VFace2D*>> connectedChain;
+    map<VFace2D*, int> connectedFaces;
+    
+    vector<VFace2D*> faceVector(faces.begin(), faces.end());
+    std::random_device rd;
+    std::mt19937 g(rd());
+    std::shuffle(faceVector.begin(), faceVector.end(), g);
+    
+    for (const auto& face : faceVector) {
+        chainCountEdges.insert({0, face});
+    }
+    
+    auto currFaceIter = chainCountEdges.begin();
+    auto currFace = chainCountEdges.begin()->second;
+    while (chainCountEdges.count(0) > 0 || chainCountEdges.count(1) > 0) {        
+        list<VEdge2D*> boundaryEdges;
+        currFace->getBoundaryVEdges(boundaryEdges);
+        map<float, VFace2D*> boundaryFaces;
+        for (const auto& boundaryEdge : boundaryEdges) {
+            if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
+                boundaryEdge->getLeftFace()->getGenerator() == 0 ||
+                boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
+                boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
+                continue;
+            }
+
+            float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
+                         .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
+
+            if (boundaryEdge->getLeftFace() == currFace) {
+                boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
+            }
+
+            else {
+                boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
+            }
+        }
+        
+        for (auto target = boundaryFaces.begin(); target != boundaryFaces.end(); ++target) {
+            VFace2D* targetFace = target->second;
+            
+            if (check_same_chain(currFace, targetFace, connectedChain) || check_target_face_state(targetFace, connectedFaces)) continue;
+            
+            connect_chain(currFace, targetFace, chainCountEdges, connectedChain, connectedFaces);
+                        
+            status = true;
+            currFaceIter = chainCountEdges.begin();
+            currFace = currFaceIter->second;
+            break;
+        }
+        
+        if (!status) {
+            map<float, VFace2D*> tempMap;
+            auto candidate = chainCountEdges.lower_bound(1);
+            candidate++;
+            for (; candidate != chainCountEdges.upper_bound(1); ++candidate) {
+                float dist = currFace->getGenerator()->getDisk().getCenterPt()
+                             .distance(candidate->second->getGenerator()->getDisk().getCenterPt());
+                tempMap.insert({dist, candidate->second});
+            }
+            
+            auto tempFace = tempMap.begin();
+            while (check_same_chain(currFace, tempFace->second, connectedChain) || check_target_face_state(tempFace->second, connectedFaces)) tempFace++;
+            
+            connect_chain(currFace, tempFace->second, chainCountEdges, connectedChain, connectedFaces);
+            
+            currFaceIter = chainCountEdges.begin();
+            currFace = currFaceIter->second;
+        }
+        status = false;
+        if (chainCountEdges.count(2) > 1 && connectedChain.size() == 1) {
+            break;
+        }
+    }
+    for (const auto& city : connectedChain[0]) {
+        result.push_back(city->getID()-1);
+    }
+    return result;
+}
+
+bool HeuristicAlgorithm::check_same_chain(VFace2D* currFace, VFace2D* targetFace, vector<list<VFace2D*>>& connectedChain) {
+    for (const auto& currentChain : connectedChain) {
+        if ((currentChain.front() == currFace && currentChain.back() == targetFace) ||
+            (currentChain.front() == targetFace && currentChain.back() == currFace)) {
+                return true;
+        }
+    }
+    return false;
+}
+
+bool HeuristicAlgorithm::check_target_face_state(VFace2D* targetFace, map<VFace2D*, int>& connectedFaces) {
+    if (connectedFaces[targetFace] == 2) {
+        return true;
+    }
+    return false;
+}
+
+void HeuristicAlgorithm::connect_chain(VFace2D* currFace,
+                                       VFace2D* targetFace,
+                                       multimap<int, VFace2D*>& chainCountEdges,
+                                       vector<list<VFace2D*>>& connectedChain,
+                                       map<VFace2D*, int>& connectedFaces) {
+    int currentConnectedNode = connectedFaces[currFace];
+    int targetConnectedNode = connectedFaces[targetFace];
+    connectedFaces[currFace] = currentConnectedNode + 1;
+    connectedFaces[targetFace] = targetConnectedNode + 1;
+    
+    for (auto it = chainCountEdges.lower_bound(currentConnectedNode); it != chainCountEdges.upper_bound(currentConnectedNode); ++it) {
+        if (currFace == it->second) {
+            chainCountEdges.erase(it);
+            break;
+        }
+    }
+    for (auto it = chainCountEdges.lower_bound(targetConnectedNode); it != chainCountEdges.upper_bound(targetConnectedNode); ++it) {
+        if (targetFace == it->second) {
+            chainCountEdges.erase(it);
+            break;
+        }
+    }
+    
+    chainCountEdges.insert({currentConnectedNode+1, currFace});
+    chainCountEdges.insert({targetConnectedNode+1, targetFace});
+    
+    string currPos = "none";
+    string targetPos = "none";
+    
+    int startPos;
+    int endPos;
+    
+    for (int i = 0; i < connectedChain.size(); ++i) {
+        if (currFace == connectedChain[i].front()) {
+            currPos = "front";
+            startPos = i;
+        }
+        else if(currFace == connectedChain[i].back()) {
+            currPos = "back";
+            startPos = i;
+        }
+        if (targetFace == connectedChain[i].front()) {
+            targetPos = "front";
+            endPos = i;
+        } 
+        else if(targetFace == connectedChain[i].back()) {
+            targetPos = "back";
+            endPos = i;
+        }
+    }
+    
+    if (currPos == "none" && targetPos == "none") {
+        connectedChain.push_back({currFace, targetFace});
+    }
+    else if (currPos == "none") {
+        if (targetPos == "front") {
+            connectedChain[endPos].push_front(currFace);
+        }
+        else {
+            connectedChain[endPos].push_back(currFace);
+        }
+    }
+    else if (targetPos == "none") {
+        if (currPos == "front") {
+            connectedChain[startPos].push_front(targetFace);            
+        }
+        else {
+            connectedChain[startPos].push_back(targetFace);            
+        }
+    }
+    else {
+        if (currPos == "front" && targetPos == "back") {
+            connectedChain[endPos].insert(connectedChain[endPos].end(), connectedChain[startPos].begin(),connectedChain[startPos].end());
+            connectedChain.erase(connectedChain.begin() + startPos);
+        }
+        else if (currPos == "front" && targetPos == "front") {
+            connectedChain[startPos].reverse();
+            connectedChain[startPos].insert(connectedChain[startPos].end(), connectedChain[endPos].begin(),connectedChain[endPos].end());
+            connectedChain.erase(connectedChain.begin() + endPos);
+        }
+        else if (currPos == "back" && targetPos == "front") {
+            connectedChain[startPos].insert(connectedChain[startPos].end(), connectedChain[endPos].begin(),connectedChain[endPos].end());
+            connectedChain.erase(connectedChain.begin() + endPos);
+        }
+        else if (currPos == "back" && targetPos == "back") {
+            connectedChain[startPos].reverse();
+            connectedChain[endPos].insert(connectedChain[endPos].end(), connectedChain[startPos].begin(),connectedChain[startPos].end());
+            connectedChain.erase(connectedChain.begin() + startPos);
+        }
+    }
+}
 
 // improved edge recombination crossover
 vector<pair<float, vector<int>>> HeuristicAlgorithm::crossover(vector<pair<float, vector<int>>>& selectionPopulations) { 
@@ -499,4 +688,17 @@ float HeuristicAlgorithm::generate_random_float(const float& min, const float& m
     std::uniform_real_distribution<> dis(min, max);
     
     return dis(gen);
+}
+
+void HeuristicAlgorithm::save_vertex(const string& path, const list<VVertex2D*> vertices)  {
+    FileStream file;
+    file.write_to_vertices(path, vertices);
+}
+void HeuristicAlgorithm::save_edge(const string& path, const list<VEdge2D*> edges)  {
+    FileStream file;
+    file.write_to_edge(path, edges);
+}
+void HeuristicAlgorithm::save_face(const string& path, const list<VFace2D*> faces)  {
+    FileStream file;
+    file.write_to_face(path, faces);
 }

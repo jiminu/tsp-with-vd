@@ -29,11 +29,11 @@ class HeuristicAlgorithm {
         
         vector<vector<float>> m_distanceMatrix;
 
-        string m_tspFile  = "./../data/tsp_data.txt";
+        string m_tspFile  = "./../data/pr1002.txt";
         string m_distanceMatrixFile  = "./../data/dist.txt";
         
         string m_savePath = "./../data/";
-        string m_saveFile = m_mutation + ".txt";
+        string m_saveFile = "result.txt";
     
         // VoronoiDiagram2DC m_VD;
         VoronoiDiagramCIC m_VD;
@@ -58,8 +58,16 @@ class HeuristicAlgorithm {
         
         void generate_vd();
         vector<pair<float, vector<int>>> initialize_chromosome_with_VD(const int& population);
-        
-        
+        vector<int> generate_chromosome(const list<VFace2D*>& faces);
+
+        bool check_same_chain(VFace2D* currFace, VFace2D* targetFace, vector<list<VFace2D*>>& connectedChain);
+        bool check_target_face_state(VFace2D* targetFace, map<VFace2D*, int>& connectedFaces);
+        void connect_chain(VFace2D* currFace,
+                           VFace2D* targetFace,
+                           multimap<int, VFace2D*>& chainCountEdges,
+                           vector<list<VFace2D*>>& connectedChain,
+                           map<VFace2D*, int>& connectedFaces);
+
         void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);
         
         void insertion_mutation(pair<float, vector<int>>& crossoverPopulations);
@@ -78,4 +86,8 @@ class HeuristicAlgorithm {
         void generate_distance_matrix();
         int generate_random_int(const int& min, const int& max);
         float generate_random_float(const float& min, const float& max);
+
+        void save_vertex(const string& path, const list<VVertex2D*> vertices);
+        void save_edge(const string& path, const list<VEdge2D*> edges);
+        void save_face(const string& path, const list<VFace2D*> faces);
 };

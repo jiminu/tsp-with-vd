@@ -22,7 +22,7 @@ include_directories(lib/Geo_tier/VoronoiDiagram2D/include)
 #                ${CMAKE_SOURCE_DIR}/lib/Geo_tier/VoronoiDiagram2D/src/VD/VoronoiDiagramCIC.cpp
 # )
 
-target_link_libraries(${PROJECT_NAME} optimized ${CMAKE_SOURCE_DIR}/lib/release/libV2_static_well.a
+target_link_libraries(${PROJECT_NAME} optimized ${CMAKE_SOURCE_DIR}/lib/release/libV2_static.a
                                       debug ${CMAKE_SOURCE_DIR}/lib/debug/libV2_static_d_well.a
 )
 
