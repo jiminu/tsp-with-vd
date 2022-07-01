@@ -13,7 +13,13 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     generate_cities();
     // generate_distance_matrix();
     generate_vd();
-    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
+
+    float start = clock();
+    
+    // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
+    vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
+    float end = clock();
+    std::cout << "initialize chromosome time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     for (int i = 0; i < m_generation; ++i) {
         populations = selection(populations);
         populations = crossover(populations);
@@ -56,8 +62,12 @@ void HeuristicAlgorithm::generate_vd() {
         circles.push_back(circle);
     }
     
+    float start = clock();
     // m_VD.constructVoronoiDiagram(circles);
     m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    float end = clock();
+    
+    std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
     string face_path = "./../data/answer_voronoi_faces.txt";
     string edge_path = "./../data/answer_voronoi_edges.txt";
