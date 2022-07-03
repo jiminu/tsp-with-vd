@@ -23,13 +23,13 @@ class HeuristicAlgorithm {
         const float m_eliteProportion    = 0.2;
         const float m_crossoverParameter = 0.7;
         const float m_mutationParameter  = 0.2;
-        const int m_population           = 1;
+        const int m_population           = 100;
         const int m_generation           = 10000000;
         const string m_mutation          = "inversion";
         
         vector<vector<float>> m_distanceMatrix;
 
-        string m_tspFile  = "./../data/pla33810.txt";
+        string m_tspFile  = "./../data/pcb442.txt";
         string m_distanceMatrixFile  = "./../data/dist.txt";
         
         string m_savePath = "./../data/";
