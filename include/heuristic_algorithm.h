@@ -7,7 +7,7 @@
 #include "city.h"
 #include <VoronoiDiagram2DC.h>
 #include <VoronoiDiagramCIC.h>
-#include "QuasiTriangulation2D.h"
+#include "BetaUniverse2D.h"
 
 using std::vector;
 using std::map;
@@ -38,7 +38,7 @@ class HeuristicAlgorithm {
     
         // VoronoiDiagram2DC m_VD;
         VoronoiDiagramCIC m_VD;
-        QuasiTriangulation2D m_QT;
+        BetaUniverse2D m_BU;
         vector<City> m_cities;
         pair<float, vector<int>> m_bestSolution = {0, {}};
         int m_currGeneration = 0;

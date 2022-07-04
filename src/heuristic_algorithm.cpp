@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "file_stream.h"
+#include "QuasiTriangulation2D.h"
 
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
@@ -15,17 +16,17 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
 
     float start = clock();
     
-    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
-    // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
-    float end = clock();
-    vector<float> info = {m_selectionPressure, 
-                          m_crossoverParameter, 
-                          m_mutationParameter, 
-                          float(m_population), 
-                          float(m_generation),
-                          m_eliteProportion, 
-                          result / CLOCKS_PER_SEC};
-    save_best_solution(info);
+    // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
+    // // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
+    // float end = clock();
+    // vector<float> info = {m_selectionPressure, 
+    //                       m_crossoverParameter, 
+    //                       m_mutationParameter, 
+    //                       float(m_population), 
+    //                       float(m_generation),
+    //                       m_eliteProportion, 
+    //                       result / CLOCKS_PER_SEC};
+    // save_best_solution(info);
     // std::cout << "initialize chromosome time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
 
     // for (auto it : populations) {
@@ -73,14 +74,29 @@ void HeuristicAlgorithm::generate_vd() {
         
         circles.push_back(circle);
     }
-    
+    std::ofstream fout("./../data/result1.txt");
     float start = clock();
     // m_VD.constructVoronoiDiagram(circles);
     m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
-    m_QT.construct(m_VD);
+    QuasiTriangulation2D QT;
+    QT.construct(m_VD);
+    m_BU.construct(QT);
     
-    m_QT.getBalls();
+    rg_dList<EdgeBU2D> tempList;
+    tempList = m_BU.getEdges();
     
+    tempList.reset4Loop();
+    while ( tempList.setNext4Loop() ) {
+        EdgeBU2D currEdge = tempList.getEntity();
+        
+        if( currEdge.isVirtual()) {
+            continue;
+        }
+        fout << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
+            << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
+
+        
+    }
     
     float end = clock();
     
