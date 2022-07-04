@@ -118,6 +118,8 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
 }
 
 vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces) {
+    std::ofstream fout("./../data/result1.txt");
+    
     vector<int> result;
     
     bool status = false;
@@ -166,6 +168,8 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
             if (check_same_chain(currFace, targetFace, connectedChain) || check_target_face_state(targetFace, connectedFaces)) continue;
             
             connect_chain(currFace, targetFace, chainCountEdges, connectedChain, connectedFaces);
+            fout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << "," 
+                << targetFace->getGenerator()->getDisk().getX() << "," << targetFace->getGenerator()->getDisk().getY() << "\n";
                         
             status = true;
             currFaceIter = chainCountEdges.begin();
@@ -187,7 +191,9 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
             while (check_same_chain(currFace, tempFace->second, connectedChain) || check_target_face_state(tempFace->second, connectedFaces)) tempFace++;
             
             connect_chain(currFace, tempFace->second, chainCountEdges, connectedChain, connectedFaces);
-            
+            fout << currFace->getGenerator()->getDisk().getX() << "," << currFace->getGenerator()->getDisk().getY() << "," 
+                << tempFace->second->getGenerator()->getDisk().getX() << "," << tempFace->second->getGenerator()->getDisk().getY() << "\n";
+
             currFaceIter = chainCountEdges.begin();
             currFace = currFaceIter->second;
         }
@@ -199,6 +205,7 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
     for (const auto& city : connectedChain[0]) {
         result.push_back(city->getID()-1);
     }
+    fout.close();
     return result;
 }
 

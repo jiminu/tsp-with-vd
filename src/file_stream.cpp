@@ -113,8 +113,7 @@ void FileStream::write_to_edge(const string& fileName, const list<VEdge2D*>& edg
 void FileStream::write_to_face(const string& fileName, const list<VFace2D*>& face) {
     std::ofstream fout("./../data/answer_voronoi_face.txt");
     for (const auto& it : face) {
-        fout << it->getGenerator()->getDisk().getX() << "," << it->getGenerator()->getDisk().getY() << "," <<
-        it->getGenerator()->getDisk().getX() << "," << it->getGenerator()->getDisk().getY() << "\n";
+        fout << it->getGenerator()->getDisk().getX() << "," << it->getGenerator()->getDisk().getY() << "\n";
     }
     fout.close();
 }
@@ -122,8 +121,7 @@ void FileStream::write_to_face(const string& fileName, const list<VFace2D*>& fac
 void FileStream::write_to_vertices(const string& fileName, const list<VVertex2D*>& vertices) {
     std::ofstream fout("./../data/answer_voronoi_vertices.txt");
     for (const auto& it : vertices) {
-        fout << it->getLocation().getX() << "," << it->getLocation().getY() << "," <<
-        it->getLocation().getX() << "," << it->getLocation().getY() << "\n";
+        fout << it->getLocation().getX() << "," << it->getLocation().getY() << "\n";
     }
     fout.close();
 }
