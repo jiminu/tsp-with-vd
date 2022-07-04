@@ -1,5 +1,4 @@
 #include "heuristic_algorithm.h"
-
 #include <time.h>
 
 #include <algorithm>
@@ -78,6 +77,11 @@ void HeuristicAlgorithm::generate_vd() {
     float start = clock();
     // m_VD.constructVoronoiDiagram(circles);
     m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    m_QT.construct(m_VD);
+    
+    m_QT.getBalls();
+    
+    
     float end = clock();
     
     std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
