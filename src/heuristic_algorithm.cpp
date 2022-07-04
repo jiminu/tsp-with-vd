@@ -140,6 +140,10 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     return chromosomes;
 }
 
+void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
+    
+}
+
 vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces) {
     std::ofstream fout("./../data/result1.txt");
     

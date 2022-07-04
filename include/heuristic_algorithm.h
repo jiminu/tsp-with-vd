@@ -69,6 +69,7 @@ class HeuristicAlgorithm {
                            multimap<int, VFace2D*>& chainCountEdges,
                            vector<list<VFace2D*>>& connectedChain,
                            map<VFace2D*, int>& connectedFaces);
+        void generate_mst(const multimap<double, EdgeBU2D>& distanceMap);
 
         void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);
         
