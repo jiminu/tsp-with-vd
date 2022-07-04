@@ -76,11 +76,14 @@ void HeuristicAlgorithm::generate_vd() {
     }
     std::ofstream fout("./../data/result1.txt");
     float start = clock();
-    // m_VD.constructVoronoiDiagram(circles);
-    m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    m_VD.constructVoronoiDiagram(circles);
+    // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
     QuasiTriangulation2D QT;
     QT.construct(m_VD);
     m_BU.construct(QT);
+    
+    multimap<double, EdgeBU2D> tempMap;
+    
     
     rg_dList<EdgeBU2D> tempList;
     tempList = m_BU.getEdges();
@@ -90,13 +93,12 @@ void HeuristicAlgorithm::generate_vd() {
         EdgeBU2D currEdge = tempList.getEntity();
         
         if( currEdge.isVirtual() ) {
-            std::cout << "continue" << std::endl;
             continue;
         }
         fout << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
             << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
-
-        
+            
+        tempMap.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
     }
     
     float end = clock();

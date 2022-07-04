@@ -36,8 +36,8 @@ class HeuristicAlgorithm {
         string m_savePath = "./../data/";
         string m_saveFile = "result.txt";
     
-        // VoronoiDiagram2DC m_VD;
-        VoronoiDiagramCIC m_VD;
+        VoronoiDiagram2DC m_VD;
+        // VoronoiDiagramCIC m_VD;
         BetaUniverse2D m_BU;
         vector<City> m_cities;
         pair<float, vector<int>> m_bestSolution = {0, {}};
