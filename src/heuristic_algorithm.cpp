@@ -122,7 +122,7 @@ void HeuristicAlgorithm::generate_vd() {
     save_face(face_path, faces);
     save_edge(edge_path, edges);
     save_vertex(vertex_path, vertices);
-};
+}
 
 int HeuristicAlgorithm::find_parents(vector<int>& set, const int id) {
     if (set[id] == id) return id;
