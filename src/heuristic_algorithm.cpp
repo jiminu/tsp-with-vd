@@ -94,11 +94,12 @@ void HeuristicAlgorithm::generate_vd() {
         if( currEdge.isVirtual() ) {
             continue;
         }
-        fout << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
-            << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
+        // fout << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
+        //     << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
             
         tempMap.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
     }
+    fout.close();
     
     generate_mst(tempMap);
     float end = clock();
@@ -142,6 +143,7 @@ void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
 
 void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
     std::ofstream fout("./../data/result1.txt");
+    int count = 0;
     
     vector<int> set;
     list<EdgeBU2D> resultEdges;
@@ -155,10 +157,15 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
         int endVertexID = edge.second.getEndVertex()->getID();
         
         if ( find_parents(set, startVertexID) != find_parents(set, endVertexID)) {
+            count++;
             union_parents(set, startVertexID, endVertexID);
             
+            resultEdges.push_back(edge.second);
+            std::cout << "count : " << count << std::endl;
             fout << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
                  << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
+            if (resultEdges.size() == m_cities.size() - 1) break;
+            continue;
         }
     }
     fout.close();
