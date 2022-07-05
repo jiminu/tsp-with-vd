@@ -189,23 +189,8 @@ if __name__ == '__main__' :
     edges = read_edge(edge_path)
     faces = read_face(face_path)
     
-    x_min = 0 
-    x_max = 0
-    y_min = 0
-    y_max = 0
-    
-    for i in generate :
-        if x_min > faces[int(i)][0] :
-            x_min = faces[int(i)][0]
-        if x_max < faces[int(i)][0] :
-            x_max = faces[int(i)][0]
-        if y_min > faces[int(i)][1] :
-            y_min = faces[int(i)][1]
-        if y_max < faces[int(i)][1] :
-            y_max = faces[int(i)][1]
-            
-    plt.xlim(x_min, x_max)
-    plt.ylim(y_min, y_max)
+    temp_edge = read_edge('./data/result1.txt')
+    draw_line(temp_edge)
     
     _, answer = read_answer(answer_path)
     
