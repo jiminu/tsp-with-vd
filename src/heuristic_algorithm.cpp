@@ -84,7 +84,6 @@ void HeuristicAlgorithm::generate_vd() {
     
     multimap<double, EdgeBU2D> tempMap;
     
-    
     rg_dList<EdgeBU2D> tempList;
     tempList = m_BU.getEdges();
     
@@ -101,6 +100,7 @@ void HeuristicAlgorithm::generate_vd() {
         tempMap.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
     }
     
+    generate_mst(tempMap);
     float end = clock();
     
     std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
@@ -123,6 +123,47 @@ void HeuristicAlgorithm::generate_vd() {
     save_vertex(vertex_path, vertices);
 };
 
+int HeuristicAlgorithm::find_parents(vector<int>& set, const int id) {
+    if (set[id] == id) return id;
+    
+    return set[id] = find_parents(set, set[id]);
+}
+void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
+    a = find_parents(set, a);
+    b = find_parents(set, b);
+    
+    if (a < b) {
+        set[b] = a;
+    }
+    else {
+        set[a] = b;
+    }
+}
+
+void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
+    std::ofstream fout("./../data/result1.txt");
+    
+    vector<int> set;
+    list<EdgeBU2D> resultEdges;
+    
+    for (int i = 0; i < m_cities.size(); ++i) {
+        set.push_back(i);
+    }
+    
+    for (auto& edge : distanceMap) {
+        int startVertexID = edge.second.getStartVertex()->getID();
+        int endVertexID = edge.second.getEndVertex()->getID();
+        
+        if ( find_parents(set, startVertexID) != find_parents(set, endVertexID)) {
+            union_parents(set, startVertexID, endVertexID);
+            
+            fout << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
+                 << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
+        }
+    }
+    fout.close();
+}
+
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
     vector<pair<float, vector<int>>> chromosomes;
     
@@ -138,10 +179,6 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     }
     
     return chromosomes;
-}
-
-void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
-    
 }
 
 vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces) {

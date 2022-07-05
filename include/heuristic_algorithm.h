@@ -71,6 +71,9 @@ class HeuristicAlgorithm {
                            map<VFace2D*, int>& connectedFaces);
         void generate_mst(const multimap<double, EdgeBU2D>& distanceMap);
 
+        int find_parents(vector<int>& set, const int id);
+        void union_parents(vector<int>& set, int a, int b);
+
         void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);
         
         void insertion_mutation(pair<float, vector<int>>& crossoverPopulations);
