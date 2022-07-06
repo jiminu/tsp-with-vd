@@ -227,8 +227,9 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
                 degFaces[targetFace.second] = 1;
                 degFaces[face.first] = 1;
                 
-                 fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
-                       << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
+                fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
+                      << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
+                break;
             }
         }
     }
