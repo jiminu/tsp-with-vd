@@ -144,6 +144,7 @@ void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
 void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
     std::ofstream fout("./../data/result1.txt");
     std::ofstream fout2("./../data/odd_face.txt");
+    std::ofstream fout3("./../data/odd_edge.txt");
     
     int count = 0;
     
@@ -174,12 +175,64 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     fout.close();
     
+    list<rg_Circle2D> oddFaces;
+    
     for (auto it : connectedFaces) {
         if (it.second % 2 != 0) {
              fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
+             oddFaces.push_back(it.first->getCircle());
         }
     }
     fout2.close();
+    
+    list<VEdge2D*> oddEdges;
+    VoronoiDiagram2DC oddVD;
+    oddVD.constructVoronoiDiagram(oddFaces);
+    list<VFace2D*> faces; 
+    oddVD.getVoronoiFaces(faces);
+    
+    map<VFace2D*, int> degFaces;
+    
+    for (auto& face : faces) {
+        degFaces[face] = 0;
+    }
+    
+    for (auto& face : degFaces) {
+        if (face.second != 0) continue;
+        list<VEdge2D*> boundaryEdges;
+        face.first->getBoundaryVEdges(boundaryEdges);
+        map<float, VFace2D*> boundaryFaces;
+        for (const auto& boundaryEdge : boundaryEdges) {
+            if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
+                boundaryEdge->getLeftFace()->getGenerator() == 0 ||
+                boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
+                boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
+                continue;
+            }
+
+            float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
+                         .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
+
+            if (boundaryEdge->getLeftFace() == face.first) {
+                boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
+            }
+
+            else {
+                boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
+            }
+        }
+        
+        for (auto& targetFace : boundaryFaces) {
+            if (degFaces[targetFace.second] == 0) {
+                degFaces[targetFace.second] = 1;
+                degFaces[face.first] = 1;
+                
+                 fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
+                       << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
+            }
+        }
+    }
+    fout3.close();
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
