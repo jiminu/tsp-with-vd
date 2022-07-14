@@ -186,89 +186,114 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     fout2.close();
     
+    // ==============================================================
+    // map<VertexBU2D*, int> connectedFaces2;
+    // vector<int> set2;
+    // list<EdgeBU2D> resultEdges2;
+    
+    // for (int i = 0; i < m_cities.size(); ++i) {
+    //     set2.push_back(i);
+    // }
+    
+    // for (auto& edge : distanceMap) {
+    //     int startVertexID = edge.second.getStartVertex()->getID();
+    //     int endVertexID = edge.second.getEndVertex()->getID();
+        
+    //     if ( find_parents(set2, startVertexID) != find_parents(set2, endVertexID)) {
+    //         union_parents(set2, startVertexID, endVertexID);
+            
+    //         connectedFaces2.insert({edge.second.getStartVertex(), connectedFaces2[edge.second.getStartVertex()]++});
+    //         connectedFaces2.insert({edge.second.getEndVertex(), connectedFaces2[edge.second.getEndVertex()]++});
+            
+    //         resultEdges2.push_back(edge.second);
+    //         fout4 << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
+    //              << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
+    //         if (resultEdges2.size() == oddFaces.size() - 1) break;
+    //         continue;
+    //     }
+    // }
+    // fout4.close();
+    // ==============================================================
+    
     // odd degree vertices calculate..
+
+
+
+    list<VEdge2D*> oddEdges;
+    VoronoiDiagram2DC oddVD;
+    oddVD.constructVoronoiDiagram(oddFaces);
+    list<VFace2D*> faces; 
+    oddVD.getVoronoiFaces(faces);
     
-    map<VertexBU2D*, int> connectedFaces2;
-    vector<int> set2;
-    list<EdgeBU2D> resultEdges2;
+    map<VFace2D*, int> degFaces;
     
-    for (int i = 0; i < m_cities.size(); ++i) {
-        set2.push_back(i);
+    
+    for (auto& face : faces) {
+        degFaces[face] = 0;
     }
     
-    for (auto& edge : distanceMap) {
-        int startVertexID = edge.second.getStartVertex()->getID();
-        int endVertexID = edge.second.getEndVertex()->getID();
+    for (auto& face : degFaces) {
+        if (face.second != 0) continue;
+        list<VEdge2D*> boundaryEdges;
+        face.first->getBoundaryVEdges(boundaryEdges);
+        map<float, VFace2D*> boundaryFaces;
+        for (const auto& boundaryEdge : boundaryEdges) {
+            if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
+                boundaryEdge->getLeftFace()->getGenerator() == 0 ||
+                boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
+                boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
+                continue;
+            }
+
+            float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
+                         .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
+
+            if (boundaryEdge->getLeftFace() == face.first) {
+                boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
+            }
+
+            else {
+                boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
+            }
+        }
         
-        if ( find_parents(set2, startVertexID) != find_parents(set2, endVertexID)) {
-            union_parents(set2, startVertexID, endVertexID);
-            
-            connectedFaces2.insert({edge.second.getStartVertex(), connectedFaces2[edge.second.getStartVertex()]++});
-            connectedFaces2.insert({edge.second.getEndVertex(), connectedFaces2[edge.second.getEndVertex()]++});
-            
-            resultEdges2.push_back(edge.second);
-            fout4 << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
-                 << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
-            if (resultEdges2.size() == oddFaces.size() - 1) break;
-            continue;
+        for (auto& targetFace : boundaryFaces) {
+            if (degFaces[targetFace.second] == 0) {
+                degFaces[targetFace.second] = 1;
+                degFaces[face.first] = 1;
+                
+                fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
+                      << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
+                break;
+            }
         }
     }
-    fout4.close();
+    fout3.close();
     
-    // list<VEdge2D*> oddEdges;
-    // VoronoiDiagram2DC oddVD;
-    // oddVD.constructVoronoiDiagram(oddFaces);
-    // list<VFace2D*> faces; 
-    // oddVD.getVoronoiFaces(faces);
-    
-    // map<VFace2D*, int> degFaces;
-    
-    // for (auto& face : faces) {
-    //     degFaces[face] = 0;
-    // }
-    
-    // for (auto& face : degFaces) {
-    //     if (face.second != 0) continue;
-    //     list<VEdge2D*> boundaryEdges;
-    //     face.first->getBoundaryVEdges(boundaryEdges);
-    //     map<float, VFace2D*> boundaryFaces;
-    //     for (const auto& boundaryEdge : boundaryEdges) {
-    //         if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
-    //             boundaryEdge->getLeftFace()->getGenerator() == 0 ||
-    //             boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
-    //             boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
-    //             continue;
-    //         }
-
-    //         float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
-    //                      .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
-
-    //         if (boundaryEdge->getLeftFace() == face.first) {
-    //             boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
-    //         }
-
-    //         else {
-    //             boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
-    //         }
-    //     }
-        
-    //     for (auto& targetFace : boundaryFaces) {
-    //         if (degFaces[targetFace.second] == 0) {
-    //             degFaces[targetFace.second] = 1;
-    //             degFaces[face.first] = 1;
-                
-    //             fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
-    //                   << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
-    //             break;
-    //         }
-    //     }
-    // }
-    // fout3.close();
+    for (auto& face : faces) {
+        if (degFaces[face] == 0) {
+            std::cout << "odd face" << std::endl;
+        }
+    }
     
     // TODO: eulerian path
     // TODO: hamillton path
     
     
+}
+
+void HeuristicAlgorithm::minimum_perfect_matching(const list<VFace2D*>& oddFaces) {
+    vector<pair<map<int,bool>, vector<VEdge2D*>>> candidateMatching;
+    vector<int> faceIDs;
+    map<int,bool> NodeState;
+    for (auto i : oddFaces) {
+        faceIDs.push_back(i->getID());
+        NodeState[i->getID()] = false;
+    }
+    
+    for (int i = 0; i < faceIDs.size(); ++i) {
+        
+    }
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
