@@ -142,7 +142,8 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
     
     auto currFaceIter = chainCountEdges.begin();
     auto currFace = chainCountEdges.begin()->second;
-    while (chainCountEdges.count(0) > 0) {        
+    while (chainCountEdges.count(0) > 0 || chainCountEdges.count(1) > 0) {        
+    // while (chainCountEdges.count(0) > 0) {        
         list<VEdge2D*> boundaryEdges;
         currFace->getBoundaryVEdges(boundaryEdges);
         map<float, VFace2D*> boundaryFaces;
