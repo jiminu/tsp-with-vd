@@ -169,13 +169,15 @@ def draw_line(_list, _color = 'black' ,_line_style = 'solid', _line_width = 0.5)
         start_y = _list[i][1]
         end_x = _list[i][2]
         end_y = _list[i][3]
-        plt.plot([start_x, end_x], [start_y, end_y], color = _color, lw = _line_width)
+        plt.plot([start_x, end_x], [start_y, end_y], linestyle = _line_style, color = _color, lw = _line_width)
         
 
 import draw as draw
    
 if __name__ == '__main__' :
-    # plt.axes().set_aspect('equal')  # xy 비율
+    plt.axes().set_aspect('equal')  # xy 비율
+    plt.xlim(0,5000)
+    plt.ylim(0,5000)
     
     read_path = './data/tsp_data.txt'
     vertex_path = './data/answer_voronoi_vertices.txt'
@@ -190,7 +192,12 @@ if __name__ == '__main__' :
     faces = read_face(face_path)
     
     temp_edge = read_edge('./data/result1.txt')
-    draw_line(temp_edge)
+    draw_line(temp_edge, 'green', _line_width= 2)
+    
+    # odd_face = read_face('./data/odd_face.txt')
+    # draw_coordinate(odd_face, 'red', 100)
+    # odd_edge = read_edge('./data/odd_edge.txt')
+    # draw_line(odd_edge,'red', _line_style = ":", _line_width = 3)
     
     _, answer = read_answer(answer_path)
     
