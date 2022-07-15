@@ -15,8 +15,8 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
 
     float start = clock();
     
-    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
-    // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
+    // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
+    vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
     float end = clock();
     
 // --------------------------------------
