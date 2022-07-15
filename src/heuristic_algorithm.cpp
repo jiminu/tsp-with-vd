@@ -18,6 +18,8 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
     // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
     float end = clock();
+    
+// --------------------------------------
     vector<float> info = {m_selectionPressure, 
                           m_crossoverParameter, 
                           m_mutationParameter, 
@@ -26,39 +28,42 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
                           m_eliteProportion, 
                           result / CLOCKS_PER_SEC};
     save_best_solution(info);
-    // std::cout << "initialize chromosome time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+// --------------------------------------
 
-    // for (auto it : populations) {
-    //     std::cout << it.first << std::endl;
-    // }
+    std::cout << "initialize chromosome time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
 
-    // for (int i = 0; i < m_generation; ++i) {
-    //     // populations = selection(populations);
-    //     // populations = crossover(populations);
+    for (auto it : populations) {
+        std::cout << it.first << std::endl;
+    }
+
+    for (int i = 0; i < m_generation; ++i) {
+        populations = selection(populations);
+        populations = crossover(populations);
         
-    //     m_currGeneration = i;
-    //     // if (i % 100 == 0) {
-    //         std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-    //     // }
-    // }
-    // end = clock();
-    // result = end - start;
-    // info = {m_selectionPressure, 
-    //                       m_crossoverParameter, 
-    //                       m_mutationParameter, 
-    //                       float(m_population), 
-    //                       float(m_generation),
-    //                       m_eliteProportion, 
-    //                       result / CLOCKS_PER_SEC};
+        m_currGeneration = i;
+        // if (i % 100 == 0) {
+            find_best_fitness(populations);
+            // std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
+        // }
+    }
+    end = clock();
+    result = end - start;
+    info = {m_selectionPressure, 
+                          m_crossoverParameter, 
+                          m_mutationParameter, 
+                          float(m_population), 
+                          float(m_generation),
+                          m_eliteProportion, 
+                          result / CLOCKS_PER_SEC};
     
-    // std::cout << "fitness : " << m_bestSolution.first << std::endl;
-    // for (const auto& it : m_bestSolution.second) {
-    //     std::cout << it << " -> ";
-    // }
-    // std::cout << m_bestSolution.second[0] << std::endl;
-    // std::cout << "runtime : " << result / CLOCKS_PER_SEC << "s" << std::endl;
-    // std::cout << "best solution : " << m_bestSolution.first << std::endl;
-    // save_best_solution(info);
+    std::cout << "fitness : " << m_bestSolution.first << std::endl;
+    for (const auto& it : m_bestSolution.second) {
+        std::cout << it << " -> ";
+    }
+    std::cout << m_bestSolution.second[0] << std::endl;
+    std::cout << "runtime : " << result / CLOCKS_PER_SEC << "s" << std::endl;
+    std::cout << "best solution : " << m_bestSolution.first << std::endl;
+    save_best_solution(info);
 }
 
 HeuristicAlgorithm::~HeuristicAlgorithm() {
@@ -142,8 +147,8 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
     
     auto currFaceIter = chainCountEdges.begin();
     auto currFace = chainCountEdges.begin()->second;
-    // while (chainCountEdges.count(0) > 0 || chainCountEdges.count(1) > 0) {        
-    while (chainCountEdges.count(0) > 0) {        
+    while (chainCountEdges.count(0) > 0 || chainCountEdges.count(1) > 0) {        
+    // while (chainCountEdges.count(0) > 0) {        
         list<VEdge2D*> boundaryEdges;
         currFace->getBoundaryVEdges(boundaryEdges);
         map<float, VFace2D*> boundaryFaces;
@@ -210,7 +215,7 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
     for (const auto& city : connectedChain[0]) {
         result.push_back(city->getID()-1);
     }
-    result.push_back(connectedChain[0].front()->getID()-1);
+    // result.push_back(connectedChain[0].front()->getID()-1);
     fout.close();
     return result;
 }

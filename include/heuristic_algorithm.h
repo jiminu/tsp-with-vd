@@ -25,7 +25,7 @@ class HeuristicAlgorithm {
         const float m_crossoverParameter = 0.7;
         const float m_mutationParameter  = 0.2;
         const int m_population           = 100;
-        const int m_generation           = 10000000;
+        const int m_generation           = 100;
         const string m_mutation          = "inversion";
         
         vector<vector<float>> m_distanceMatrix;
