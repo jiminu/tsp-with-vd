@@ -5,4 +5,4 @@ mutation parameter : 0.2
 population : 100
 elite proportion : 1e+07
 generation : 0.2
-time : 1.6523e+07
+time : 3.79273e+17
