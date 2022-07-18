@@ -175,7 +175,7 @@ def draw_line(_list, _color = 'black' ,_line_style = 'solid', _line_width = 0.5)
 import draw as draw
    
 if __name__ == '__main__' :
-    # plt.axes().set_aspect('equal')  # xy 비율
+    plt.axes().set_aspect('equal')  # xy 비율
     
     read_path = './data/tsp_data.txt'
     vertex_path = './data/answer_voronoi_vertices.txt'
@@ -189,23 +189,29 @@ if __name__ == '__main__' :
     edges = read_edge(edge_path)
     faces = read_face(face_path)
     
+    # temp_edge = read_edge('./data/result1.txt')
+    # draw_line(temp_edge, _color='green', _line_width=2)
+    # # draw_line([[temp_edge[-1][2], temp_edge[-1][3],temp_edge[0][0], temp_edge[0][1]]], _color='green', _line_width=2)
+    # draw_coordinate([[temp_edge[0][0],temp_edge[0][1]]], _c='red', _s=100)    
+    # draw_coordinate([[temp_edge[-1][2],temp_edge[-1][3]]], _c='red', _s=100)    
+    
     x_min = 0 
     x_max = 0
     y_min = 0
     y_max = 0
     
-    for i in generate :
-        if x_min > faces[int(i)][0] :
-            x_min = faces[int(i)][0]
-        if x_max < faces[int(i)][0] :
-            x_max = faces[int(i)][0]
-        if y_min > faces[int(i)][1] :
-            y_min = faces[int(i)][1]
-        if y_max < faces[int(i)][1] :
-            y_max = faces[int(i)][1]
+    # for i in generate :
+    #     if x_min > faces[int(i)][0] :
+    #         x_min = faces[int(i)][0]
+    #     if x_max < faces[int(i)][0] :
+    #         x_max = faces[int(i)][0]
+    #     if y_min > faces[int(i)][1] :
+    #         y_min = faces[int(i)][1]
+    #     if y_max < faces[int(i)][1] :
+    #         y_max = faces[int(i)][1]
             
-    plt.xlim(x_min, x_max)
-    plt.ylim(y_min, y_max)
+    plt.xlim(0, 300)
+    plt.ylim(-50, 250)
     
     _, answer = read_answer(answer_path)
     
@@ -226,10 +232,10 @@ if __name__ == '__main__' :
     
     
     # ========== heuristic path ==========
-    # result_file = 'tsp.txt'
-    # info, result = draw.read_answer(result_file)
-    # draw.draw_coordinate([face[int(result[0][0])]], 'red', 10)
-    # draw.draw_coordinate([face[int(result[-1][0])]], 'red', 10)
+    result_file = './data/inversion.txt'
+    info, result = draw.read_answer(result_file)
+    # draw.draw_coordinate([faces[int(result[0][0])]], 'red', 10)
+    # draw.draw_coordinate([faces[int(result[-1][0])]], 'red', 10)
     
     
     result_line = []
