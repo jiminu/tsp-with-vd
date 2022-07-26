@@ -186,6 +186,8 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     fout2.close();
     
+    minimum_perfect_matching(oddFaces);
+    
     // ==============================================================
     // map<VertexBU2D*, int> connectedFaces2;
     // vector<int> set2;
@@ -227,48 +229,49 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     
     map<VFace2D*, int> degFaces;
     
+    // ------------------------------------ linking odd facecs ---------------------
+    // for (auto& face : faces) {
+    //     degFaces[face] = 0;
+    // }
     
-    for (auto& face : faces) {
-        degFaces[face] = 0;
-    }
-    
-    for (auto& face : degFaces) {
-        if (face.second != 0) continue;
-        list<VEdge2D*> boundaryEdges;
-        face.first->getBoundaryVEdges(boundaryEdges);
-        map<float, VFace2D*> boundaryFaces;
-        for (const auto& boundaryEdge : boundaryEdges) {
-            if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
-                boundaryEdge->getLeftFace()->getGenerator() == 0 ||
-                boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
-                boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
-                continue;
-            }
+    // for (auto& face : degFaces) {
+    //     if (face.second != 0) continue;
+    //     list<VEdge2D*> boundaryEdges;
+    //     face.first->getBoundaryVEdges(boundaryEdges);
+    //     map<float, VFace2D*> boundaryFaces;
+    //     for (const auto& boundaryEdge : boundaryEdges) {
+    //         if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
+    //             boundaryEdge->getLeftFace()->getGenerator() == 0 ||
+    //             boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
+    //             boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
+    //             continue;
+    //         }
 
-            float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
-                         .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
+    //         float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
+    //                      .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
 
-            if (boundaryEdge->getLeftFace() == face.first) {
-                boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
-            }
+    //         if (boundaryEdge->getLeftFace() == face.first) {
+    //             boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
+    //         }
 
-            else {
-                boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
-            }
-        }
+    //         else {
+    //             boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
+    //         }
+    //     }
         
-        for (auto& targetFace : boundaryFaces) {
-            if (degFaces[targetFace.second] == 0) {
-                degFaces[targetFace.second] = 1;
-                degFaces[face.first] = 1;
+    //     for (auto& targetFace : boundaryFaces) {
+    //         if (degFaces[targetFace.second] == 0) {
+    //             degFaces[targetFace.second] = 1;
+    //             degFaces[face.first] = 1;
                 
-                fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
-                      << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
-                break;
-            }
-        }
-    }
-    fout3.close();
+    //             fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
+    //                   << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
+    //             break;
+    //         }
+    //     }
+    // }
+    // fout3.close();
+    // ------------------------------------ linking odd facecs ---------------------
     
     for (auto& face : faces) {
         if (degFaces[face] == 0) {
@@ -282,16 +285,68 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     
 }
 
-void HeuristicAlgorithm::minimum_perfect_matching(const list<VFace2D*>& oddFaces) {
+void HeuristicAlgorithm::minimum_perfect_matching(const list<rg_Circle2D>& oddFaces) {
     vector<pair<map<int,bool>, vector<VEdge2D*>>> candidateMatching;
     vector<int> faceIDs;
     map<int,bool> NodeState;
-    for (auto i : oddFaces) {
-        faceIDs.push_back(i->getID());
-        NodeState[i->getID()] = false;
+    list<rg_Circle2D> circles;
+    VoronoiDiagram2DC VD;
+    BetaUniverse2D BU;
+    
+    for (const auto& face : oddFaces) {
+        circles.push_back(face);
     }
     
-    for (int i = 0; i < faceIDs.size(); ++i) {
+    VD.constructVoronoiDiagram(circles);
+    // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    QuasiTriangulation2D QT;
+    QT.construct(VD);
+    BU.construct(QT);
+    
+    multimap<VertexBU2D*, VertexBU2D*> QTEdges;
+    vector<pair<VertexBU2D*, VertexBU2D*>> result;
+    rg_dList<EdgeBU2D> tempList;
+    tempList = BU.getEdges();
+    
+    tempList.reset4Loop();
+    while ( tempList.setNext4Loop() ) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+        EdgeBU2D currEdge = tempList.getEntity();
+        
+        if( currEdge.isVirtual() ) {
+            continue;
+        }
+            
+        QTEdges.insert({currEdge.getStartVertex(), currEdge.getEndVertex()});
+    }
+    
+    map<int, VertexBU2D*> idV;
+    
+    for (auto i : QTEdges) {
+        idV.insert({i.first->getID(), i.first});
+    }
+    
+    VertexBU2D* startNode = QTEdges.begin()->first;
+    int size = QTEdges.count(startNode);
+    vector<vector<VertexBU2D*>> returnResult; 
+    
+    
+    for (int i = 0; i < size; ++i) {
+        vector<VertexBU2D*> tempV;
+        
+        VertexBU2D* start;
+        VertexBU2D* end;
+        auto iter = QTEdges.begin();
+        
+        for (int n = 0; n < i; ++n) {
+            iter++;
+        }
+        
+        start = iter->first;
+        end = iter->second;
+
+        tempV.push_back(start);
+        tempV.push_back(end);
+        
         
     }
 }
