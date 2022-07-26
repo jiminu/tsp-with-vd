@@ -30,7 +30,7 @@ class HeuristicAlgorithm {
         
         vector<vector<float>> m_distanceMatrix;
 
-        string m_tspFile  = "./../data/pr1002.txt";
+        string m_tspFile  = "./../data/tsp_data.txt";
         string m_distanceMatrixFile  = "./../data/dist.txt";
         
         string m_savePath = "./../data/";
@@ -72,9 +72,11 @@ class HeuristicAlgorithm {
                            vector<list<VFace2D*>>& connectedChain,
                            map<VFace2D*, int>& connectedFaces);
         void generate_mst(const multimap<double, EdgeBU2D>& distanceMap);
+        void minimum_perfect_matching(const list<rg_Circle2D>& oddFaces);
 
         int find_parents(vector<int>& set, const int id);
         void union_parents(vector<int>& set, int a, int b);
+        void erase_node(map<int, vector<int>>& edge, const int& value);
 
         void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);
         
