@@ -72,7 +72,7 @@ class HeuristicAlgorithm {
                            vector<list<VFace2D*>>& connectedChain,
                            map<VFace2D*, int>& connectedFaces);
         void generate_mst(const multimap<double, EdgeBU2D>& distanceMap);
-        void minimum_perfect_matching(const list<rg_Circle2D>& oddFaces);
+        void minimum_perfect_matching(const vector<VertexBU2D*>& oddFaces);
 
         int find_parents(vector<int>& set, const int id);
         void union_parents(vector<int>& set, int a, int b);
