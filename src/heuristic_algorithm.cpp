@@ -82,7 +82,7 @@ void HeuristicAlgorithm::generate_vd() {
     QT.construct(m_VD);
     m_BU.construct(QT);
     
-    multimap<double, EdgeBU2D> tempMap;
+    multimap<double, EdgeBU2D> distanceSortedEdges;
     
     rg_dList<EdgeBU2D> tempList;
     tempList = m_BU.getEdges();
@@ -97,11 +97,13 @@ void HeuristicAlgorithm::generate_vd() {
         fout << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
             << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
             
-        tempMap.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
+        distanceSortedEdges.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
     }
     fout.close();
     
-    generate_mst(tempMap);
+    // -- delaunay triangulation --
+    
+    generate_mst(distanceSortedEdges);
     float end = clock();
     
     std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
@@ -142,7 +144,7 @@ void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
 }
 
 void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
-    std::ofstream fout("./../data/result1.txt");
+    std::ofstream mstOut("./../data/result1.txt");
     std::ofstream fout2("./../data/odd_face.txt");
     std::ofstream fout3("./../data/odd_edge.txt");
     std::ofstream fout4("./../data/odd_mst.txt");
@@ -168,20 +170,20 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
             connectedFaces.insert({edge.second.getEndVertex(), connectedFaces[edge.second.getEndVertex()]++});
             
             resultEdges.push_back(edge.second);
-            fout << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
+            mstOut << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
                  << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
             if (resultEdges.size() == m_cities.size() - 1) break;
             continue;
         }
     }
-    fout.close();
+    mstOut.close();
     
-    list<rg_Circle2D> oddFaces;
+    vector<VertexBU2D*> oddFaces;
     
     for (auto it : connectedFaces) {
         if (it.second % 2 != 0) {
              fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
-             oddFaces.push_back(it.first->getCircle());
+             oddFaces.push_back(it.first);
         }
     }
     fout2.close();
@@ -221,13 +223,13 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
 
 
 
-    list<VEdge2D*> oddEdges;
-    VoronoiDiagram2DC oddVD;
-    oddVD.constructVoronoiDiagram(oddFaces);
-    list<VFace2D*> faces; 
-    oddVD.getVoronoiFaces(faces);
+    // list<VEdge2D*> oddEdges;
+    // VoronoiDiagram2DC oddVD;
+    // oddVD.constructVoronoiDiagram(oddFaces);
+    // list<VFace2D*> faces; 
+    // oddVD.getVoronoiFaces(faces);
     
-    map<VFace2D*, int> degFaces;
+    // map<VFace2D*, int> degFaces;
     
     // ------------------------------------ linking odd facecs ---------------------
     // for (auto& face : faces) {
@@ -273,11 +275,11 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     // fout3.close();
     // ------------------------------------ linking odd facecs ---------------------
     
-    for (auto& face : faces) {
-        if (degFaces[face] == 0) {
-            std::cout << "odd face" << std::endl;
-        }
-    }
+    // for (auto& face : faces) {
+    //     if (degFaces[face] == 0) {
+    //         std::cout << "odd face" << std::endl;
+    //     }
+    // }
     
     // TODO: eulerian path
     // TODO: hamillton path
@@ -285,70 +287,139 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     
 }
 
-void HeuristicAlgorithm::minimum_perfect_matching(const list<rg_Circle2D>& oddFaces) {
-    vector<pair<map<int,bool>, vector<VEdge2D*>>> candidateMatching;
-    vector<int> faceIDs;
-    map<int,bool> NodeState;
-    list<rg_Circle2D> circles;
-    VoronoiDiagram2DC VD;
-    BetaUniverse2D BU;
+void HeuristicAlgorithm::minimum_perfect_matching(const vector<VertexBU2D*>& oddFaces) {
+    map<int, int> row;
+    map<int, int> column;
     
-    for (const auto& face : oddFaces) {
-        circles.push_back(face);
+    map<int, bool> status;
+    for (int i = 0; i < oddFaces.size(); ++i) {
+        status.insert({i, false});
+        row.insert({i, 0});
+        column.insert({i, 0});
     }
     
-    VD.constructVoronoiDiagram(circles);
-    // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
-    QuasiTriangulation2D QT;
-    QT.construct(VD);
-    BU.construct(QT);
+    vector<vector<double>> distanceMatrix;
+    vector<vector<double>> rotateDistanceMatrix;
+    distanceMatrix.resize(oddFaces.size());
+    rotateDistanceMatrix.resize(oddFaces.size());
+    for (auto& it : distanceMatrix) {
+        it.resize(oddFaces.size());
+    }
+    for (auto& it : rotateDistanceMatrix) {
+        it.resize(oddFaces.size());
+    }
     
-    multimap<VertexBU2D*, VertexBU2D*> QTEdges;
-    vector<pair<VertexBU2D*, VertexBU2D*>> result;
-    rg_dList<EdgeBU2D> tempList;
-    tempList = BU.getEdges();
-    
-    tempList.reset4Loop();
-    while ( tempList.setNext4Loop() ) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
-        EdgeBU2D currEdge = tempList.getEntity();
-        
-        if( currEdge.isVirtual() ) {
-            continue;
+    for (int i = 0; i < oddFaces.size(); ++i) {
+        for (int j = 0; j < oddFaces.size(); ++j) {
+            if (i == j) {
+                distanceMatrix[i][j] = 100000000000;
+                rotateDistanceMatrix[j][i] = 100000000000;
+            }
+            else {
+                distanceMatrix[i][j] = oddFaces[i]->getCoord().distance(oddFaces[j]->getCoord());
+                rotateDistanceMatrix[j][i] = oddFaces[j]->getCoord().distance(oddFaces[i]->getCoord());
+            }
         }
+    }
+    
+    for (int i = 0; i < oddFaces.size(); ++i) {
+        double min = *min_element(distanceMatrix[i].begin(), distanceMatrix[i].end());
+        for (int j = 0; j < oddFaces.size(); ++j) {
+            if (i == j) continue;
+            double re = distanceMatrix[i][j] - min;
+            distanceMatrix[i][j] = re;
+            rotateDistanceMatrix[j][i] = re;
             
-        QTEdges.insert({currEdge.getStartVertex(), currEdge.getEndVertex()});
+            if ( re == 0 ) {
+                row[i] = row[i] + 1;
+                column[j] = column[j] + 1;
+            }
+        }
     }
     
-    map<int, VertexBU2D*> idV;
-    
-    for (auto i : QTEdges) {
-        idV.insert({i.first->getID(), i.first});
-    }
-    
-    VertexBU2D* startNode = QTEdges.begin()->first;
-    int size = QTEdges.count(startNode);
-    vector<vector<VertexBU2D*>> returnResult; 
-    
-    
-    for (int i = 0; i < size; ++i) {
-        vector<VertexBU2D*> tempV;
-        
-        VertexBU2D* start;
-        VertexBU2D* end;
-        auto iter = QTEdges.begin();
-        
-        for (int n = 0; n < i; ++n) {
-            iter++;
+    for (int i = 0; i < oddFaces.size(); ++i) {
+        double min = *min_element(rotateDistanceMatrix[i].begin(), rotateDistanceMatrix[i].end());
+        for (int j = 0; j < oddFaces.size(); ++j) {
+            if (i == j) continue;
+            double re = distanceMatrix[j][i] - min;
+            distanceMatrix[j][i] = re;
+            rotateDistanceMatrix[i][j] = re;
+            
+            if (re < 0) std::cout << "-" << std::endl;
+            if ( re == 0 ) {
+                row[i] = row[i] + 1;
+                column[j] = column[j] + 1;
+            }
         }
         
-        start = iter->first;
-        end = iter->second;
-
-        tempV.push_back(start);
-        tempV.push_back(end);
-        
-        
     }
+    
+    std::cout << "a" << std::endl;
+    
+    
+    // vector<pair<map<int,bool>, vector<VEdge2D*>>> candidateMatching;
+    // vector<int> faceIDs;
+    // map<int,bool> NodeState;
+    // list<rg_Circle2D> circles;
+    // VoronoiDiagram2DC VD;
+    // BetaUniverse2D BU;
+    
+    // // for (const auto& face : oddFaces) {
+    // //     circles.push_back(face);
+    // // }
+    
+    // VD.constructVoronoiDiagram(circles);
+    // // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    // QuasiTriangulation2D QT;
+    // QT.construct(VD);
+    // BU.construct(QT);
+    
+    // multimap<VertexBU2D*, VertexBU2D*> QTEdges;
+    // vector<pair<VertexBU2D*, VertexBU2D*>> result;
+    // rg_dList<EdgeBU2D> tempList;
+    // tempList = BU.getEdges();
+    
+    // tempList.reset4Loop();
+    // while ( tempList.setNext4Loop() ) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
+    //     EdgeBU2D currEdge = tempList.getEntity();
+        
+    //     if( currEdge.isVirtual() ) {
+    //         continue;
+    //     }
+            
+    //     QTEdges.insert({currEdge.getStartVertex(), currEdge.getEndVertex()});
+    // }
+    
+    // map<int, VertexBU2D*> idV;
+    
+    // for (auto i : QTEdges) {
+    //     idV.insert({i.first->getID(), i.first});
+    // }
+    
+    // VertexBU2D* startNode = QTEdges.begin()->first;
+    // int size = QTEdges.count(startNode);
+    // vector<vector<VertexBU2D*>> returnResult; 
+    
+    
+    // for (int i = 0; i < size; ++i) {
+    //     vector<VertexBU2D*> tempV;
+        
+    //     VertexBU2D* start;
+    //     VertexBU2D* end;
+    //     auto iter = QTEdges.begin();
+        
+    //     for (int n = 0; n < i; ++n) {
+    //         iter++;
+    //     }
+        
+    //     start = iter->first;
+    //     end = iter->second;
+
+    //     tempV.push_back(start);
+    //     tempV.push_back(end);
+        
+        
+    // }
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
