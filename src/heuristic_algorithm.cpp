@@ -7,6 +7,7 @@
 
 #include "file_stream.h"
 #include "QuasiTriangulation2D.h"
+#include "Hungarian.h"
 
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
@@ -191,32 +192,32 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     minimum_perfect_matching(oddFaces);
     
     // ==============================================================
-    // map<VertexBU2D*, int> connectedFaces2;
-    // vector<int> set2;
-    // list<EdgeBU2D> resultEdges2;
+    map<VertexBU2D*, int> connectedFaces2;
+    vector<int> set2;
+    list<EdgeBU2D> resultEdges2;
     
-    // for (int i = 0; i < m_cities.size(); ++i) {
-    //     set2.push_back(i);
-    // }
+    for (int i = 0; i < m_cities.size(); ++i) {
+        set2.push_back(i);
+    }
     
-    // for (auto& edge : distanceMap) {
-    //     int startVertexID = edge.second.getStartVertex()->getID();
-    //     int endVertexID = edge.second.getEndVertex()->getID();
+    for (auto& edge : distanceMap) {
+        int startVertexID = edge.second.getStartVertex()->getID();
+        int endVertexID = edge.second.getEndVertex()->getID();
         
-    //     if ( find_parents(set2, startVertexID) != find_parents(set2, endVertexID)) {
-    //         union_parents(set2, startVertexID, endVertexID);
+        if ( find_parents(set2, startVertexID) != find_parents(set2, endVertexID)) {
+            union_parents(set2, startVertexID, endVertexID);
             
-    //         connectedFaces2.insert({edge.second.getStartVertex(), connectedFaces2[edge.second.getStartVertex()]++});
-    //         connectedFaces2.insert({edge.second.getEndVertex(), connectedFaces2[edge.second.getEndVertex()]++});
+            connectedFaces2.insert({edge.second.getStartVertex(), connectedFaces2[edge.second.getStartVertex()]++});
+            connectedFaces2.insert({edge.second.getEndVertex(), connectedFaces2[edge.second.getEndVertex()]++});
             
-    //         resultEdges2.push_back(edge.second);
-    //         fout4 << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
-    //              << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
-    //         if (resultEdges2.size() == oddFaces.size() - 1) break;
-    //         continue;
-    //     }
-    // }
-    // fout4.close();
+            resultEdges2.push_back(edge.second);
+            fout4 << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
+                 << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
+            if (resultEdges2.size() == oddFaces.size() - 1) break;
+            continue;
+        }
+    }
+    fout4.close();
     // ==============================================================
     
     // odd degree vertices calculate..
@@ -303,121 +304,65 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<VertexBU2D*>& odd
     distanceMatrix.resize(oddFaces.size());
     rotateDistanceMatrix.resize(oddFaces.size());
     for (auto& it : distanceMatrix) {
-        it.resize(oddFaces.size());
+        it.resize(oddFaces.size(), 10000000000);
     }
     for (auto& it : rotateDistanceMatrix) {
         it.resize(oddFaces.size());
     }
     
     for (int i = 0; i < oddFaces.size(); ++i) {
-        for (int j = 0; j < oddFaces.size(); ++j) {
-            if (i == j) {
-                distanceMatrix[i][j] = 100000000000;
-                rotateDistanceMatrix[j][i] = 100000000000;
-            }
-            else {
+        for (int j = i+1; j < oddFaces.size(); ++j) {
+            // if (i == j) {
+            //     distanceMatrix[i][j] = 100000000000;
+            //     rotateDistanceMatrix[j][i] = 100000000000;
+            // }
+            // else {
                 distanceMatrix[i][j] = oddFaces[i]->getCoord().distance(oddFaces[j]->getCoord());
                 rotateDistanceMatrix[j][i] = oddFaces[j]->getCoord().distance(oddFaces[i]->getCoord());
-            }
+            // }
         }
     }
     
-    for (int i = 0; i < oddFaces.size(); ++i) {
-        double min = *min_element(distanceMatrix[i].begin(), distanceMatrix[i].end());
-        for (int j = 0; j < oddFaces.size(); ++j) {
-            if (i == j) continue;
-            double re = distanceMatrix[i][j] - min;
-            distanceMatrix[i][j] = re;
-            rotateDistanceMatrix[j][i] = re;
-            
-            if ( re == 0 ) {
-                row[i] = row[i] + 1;
-                column[j] = column[j] + 1;
-            }
-        }
-    }
+    HungarianAlgorithm hungAlgo;
+    vector<int> assignment;
     
-    for (int i = 0; i < oddFaces.size(); ++i) {
-        double min = *min_element(rotateDistanceMatrix[i].begin(), rotateDistanceMatrix[i].end());
-        for (int j = 0; j < oddFaces.size(); ++j) {
-            if (i == j) continue;
-            double re = distanceMatrix[j][i] - min;
-            distanceMatrix[j][i] = re;
-            rotateDistanceMatrix[i][j] = re;
-            
-            if (re < 0) std::cout << "-" << std::endl;
-            if ( re == 0 ) {
-                row[i] = row[i] + 1;
-                column[j] = column[j] + 1;
-            }
-        }
-        
+    double cost = hungAlgo.Solve(distanceMatrix, assignment);
+    
+    for (int i = 0; i < distanceMatrix.size(); ++i) {
+        std::cout << i << ", " << assignment[i] << std::endl;
     }
     
     std::cout << "a" << std::endl;
     
-    
-    // vector<pair<map<int,bool>, vector<VEdge2D*>>> candidateMatching;
-    // vector<int> faceIDs;
-    // map<int,bool> NodeState;
-    // list<rg_Circle2D> circles;
-    // VoronoiDiagram2DC VD;
-    // BetaUniverse2D BU;
-    
-    // // for (const auto& face : oddFaces) {
-    // //     circles.push_back(face);
-    // // }
-    
-    // VD.constructVoronoiDiagram(circles);
-    // // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
-    // QuasiTriangulation2D QT;
-    // QT.construct(VD);
-    // BU.construct(QT);
-    
-    // multimap<VertexBU2D*, VertexBU2D*> QTEdges;
-    // vector<pair<VertexBU2D*, VertexBU2D*>> result;
-    // rg_dList<EdgeBU2D> tempList;
-    // tempList = BU.getEdges();
-    
-    // tempList.reset4Loop();
-    // while ( tempList.setNext4Loop() ) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      
-    //     EdgeBU2D currEdge = tempList.getEntity();
-        
-    //     if( currEdge.isVirtual() ) {
-    //         continue;
-    //     }
+    // for (int i = 0; i < oddFaces.size(); ++i) {
+    //     double min = *min_element(distanceMatrix[i].begin(), distanceMatrix[i].end());
+    //     for (int j = 0; j < oddFaces.size(); ++j) {
+    //         if (i == j) continue;
+    //         double re = distanceMatrix[i][j] - min;
+    //         distanceMatrix[i][j] = re;
+    //         rotateDistanceMatrix[j][i] = re;
             
-    //     QTEdges.insert({currEdge.getStartVertex(), currEdge.getEndVertex()});
-    // }
-    
-    // map<int, VertexBU2D*> idV;
-    
-    // for (auto i : QTEdges) {
-    //     idV.insert({i.first->getID(), i.first});
-    // }
-    
-    // VertexBU2D* startNode = QTEdges.begin()->first;
-    // int size = QTEdges.count(startNode);
-    // vector<vector<VertexBU2D*>> returnResult; 
-    
-    
-    // for (int i = 0; i < size; ++i) {
-    //     vector<VertexBU2D*> tempV;
-        
-    //     VertexBU2D* start;
-    //     VertexBU2D* end;
-    //     auto iter = QTEdges.begin();
-        
-    //     for (int n = 0; n < i; ++n) {
-    //         iter++;
+    //         if ( re == 0 ) {
+    //             row[i] = row[i] + 1;
+    //             column[j] = column[j] + 1;
+    //         }
     //     }
-        
-    //     start = iter->first;
-    //     end = iter->second;
-
-    //     tempV.push_back(start);
-    //     tempV.push_back(end);
-        
+    // }
+    
+    // for (int i = 0; i < oddFaces.size(); ++i) {
+    //     double min = *min_element(rotateDistanceMatrix[i].begin(), rotateDistanceMatrix[i].end());
+    //     for (int j = 0; j < oddFaces.size(); ++j) {
+    //         if (i == j) continue;
+    //         double re = distanceMatrix[j][i] - min;
+    //         distanceMatrix[j][i] = re;
+    //         rotateDistanceMatrix[i][j] = re;
+            
+    //         if (re < 0) std::cout << "-" << std::endl;
+    //         if ( re == 0 ) {
+    //             row[i] = row[i] + 1;
+    //             column[j] = column[j] + 1;
+    //         }
+    //     }
         
     // }
 }
