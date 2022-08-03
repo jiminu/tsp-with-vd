@@ -191,38 +191,6 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     
     minimum_perfect_matching(oddFaces);
     
-    // ==============================================================
-    map<VertexBU2D*, int> connectedFaces2;
-    vector<int> set2;
-    list<EdgeBU2D> resultEdges2;
-    
-    for (int i = 0; i < m_cities.size(); ++i) {
-        set2.push_back(i);
-    }
-    
-    for (auto& edge : distanceMap) {
-        int startVertexID = edge.second.getStartVertex()->getID();
-        int endVertexID = edge.second.getEndVertex()->getID();
-        
-        if ( find_parents(set2, startVertexID) != find_parents(set2, endVertexID)) {
-            union_parents(set2, startVertexID, endVertexID);
-            
-            connectedFaces2.insert({edge.second.getStartVertex(), connectedFaces2[edge.second.getStartVertex()]++});
-            connectedFaces2.insert({edge.second.getEndVertex(), connectedFaces2[edge.second.getEndVertex()]++});
-            
-            resultEdges2.push_back(edge.second);
-            fout4 << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
-                 << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
-            if (resultEdges2.size() == oddFaces.size() - 1) break;
-            continue;
-        }
-    }
-    fout4.close();
-    // ==============================================================
-    
-    // odd degree vertices calculate..
-
-
 
     // list<VEdge2D*> oddEdges;
     // VoronoiDiagram2DC oddVD;
@@ -300,26 +268,19 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<VertexBU2D*>& odd
     }
     
     vector<vector<double>> distanceMatrix;
-    vector<vector<double>> rotateDistanceMatrix;
     distanceMatrix.resize(oddFaces.size());
-    rotateDistanceMatrix.resize(oddFaces.size());
     for (auto& it : distanceMatrix) {
         it.resize(oddFaces.size(), 10000000000);
     }
-    for (auto& it : rotateDistanceMatrix) {
-        it.resize(oddFaces.size());
-    }
     
     for (int i = 0; i < oddFaces.size(); ++i) {
-        for (int j = i+1; j < oddFaces.size(); ++j) {
-            // if (i == j) {
-            //     distanceMatrix[i][j] = 100000000000;
-            //     rotateDistanceMatrix[j][i] = 100000000000;
-            // }
-            // else {
+        for (int j = 0; j < oddFaces.size(); ++j) {
+            if (i == j) {
+                break;
+            }
+            else {
                 distanceMatrix[i][j] = oddFaces[i]->getCoord().distance(oddFaces[j]->getCoord());
-                rotateDistanceMatrix[j][i] = oddFaces[j]->getCoord().distance(oddFaces[i]->getCoord());
-            // }
+            }
         }
     }
     
