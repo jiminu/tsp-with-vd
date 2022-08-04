@@ -8,6 +8,7 @@
 #include "file_stream.h"
 #include "QuasiTriangulation2D.h"
 #include "Hungarian.h"
+#include "blossom.h"
 
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
@@ -70,8 +71,8 @@ HeuristicAlgorithm::~HeuristicAlgorithm() {
 void HeuristicAlgorithm::generate_vd() {
     list<rg_Circle2D> circles;
     
-    for (const auto& city : m_cities) {
-        rg_Circle2D circle(city.x, city.y, 0);
+    for (int i = 0; i < m_cities.size(); ++i) {
+        rg_Circle2D circle(m_cities[i].x, m_cities[i].y, 0);
         
         circles.push_back(circle);
     }
@@ -82,6 +83,13 @@ void HeuristicAlgorithm::generate_vd() {
     QuasiTriangulation2D QT;
     QT.construct(m_VD);
     m_BU.construct(QT);
+    
+    list<Generator2D*> ge;
+    m_VD.getGenerators(ge);
+    int id = 0;
+    for (auto& it : ge) {
+        m_circles.insert({it->getID(), it->getDiskPtr()});
+    }
     
     multimap<double, EdgeBU2D> distanceSortedEdges;
     
@@ -102,7 +110,6 @@ void HeuristicAlgorithm::generate_vd() {
     }
     fout.close();
     
-    // -- delaunay triangulation --
     
     generate_mst(distanceSortedEdges);
     float end = clock();
@@ -147,8 +154,6 @@ void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
 void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
     std::ofstream mstOut("./../data/result1.txt");
     std::ofstream fout2("./../data/odd_face.txt");
-    std::ofstream fout3("./../data/odd_edge.txt");
-    std::ofstream fout4("./../data/odd_mst.txt");
     
     int count = 0;
     
@@ -179,153 +184,63 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     mstOut.close();
     
-    vector<VertexBU2D*> oddFaces;
+    vector<rg_Circle2D*> oddCircles;
     
     for (auto it : connectedFaces) {
         if (it.second % 2 != 0) {
              fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
-             oddFaces.push_back(it.first);
+             oddCircles.push_back(m_circles[it.first->getID()]);
         }
     }
     fout2.close();
     
-    minimum_perfect_matching(oddFaces);
-    
-
-    // list<VEdge2D*> oddEdges;
-    // VoronoiDiagram2DC oddVD;
-    // oddVD.constructVoronoiDiagram(oddFaces);
-    // list<VFace2D*> faces; 
-    // oddVD.getVoronoiFaces(faces);
-    
-    // map<VFace2D*, int> degFaces;
-    
-    // ------------------------------------ linking odd facecs ---------------------
-    // for (auto& face : faces) {
-    //     degFaces[face] = 0;
-    // }
-    
-    // for (auto& face : degFaces) {
-    //     if (face.second != 0) continue;
-    //     list<VEdge2D*> boundaryEdges;
-    //     face.first->getBoundaryVEdges(boundaryEdges);
-    //     map<float, VFace2D*> boundaryFaces;
-    //     for (const auto& boundaryEdge : boundaryEdges) {
-    //         if (boundaryEdge->getRightFace()->getGenerator() == 0 ||
-    //             boundaryEdge->getLeftFace()->getGenerator() == 0 ||
-    //             boundaryEdge->getRightFace()->getGenerator()->getID() == -1 ||
-    //             boundaryEdge->getLeftFace()->getGenerator()->getID() == -1) {
-    //             continue;
-    //         }
-
-    //         float dist = boundaryEdge->getLeftFace()->getGenerator()->getDisk().getCenterPt()
-    //                      .distance(boundaryEdge->getRightFace()->getGenerator()->getDisk().getCenterPt());
-
-    //         if (boundaryEdge->getLeftFace() == face.first) {
-    //             boundaryFaces.insert({dist, boundaryEdge->getRightFace()});
-    //         }
-
-    //         else {
-    //             boundaryFaces.insert({dist, boundaryEdge->getLeftFace()});
-    //         }
-    //     }
-        
-    //     for (auto& targetFace : boundaryFaces) {
-    //         if (degFaces[targetFace.second] == 0) {
-    //             degFaces[targetFace.second] = 1;
-    //             degFaces[face.first] = 1;
-                
-    //             fout3 << face.first->getGenerator()->getDisk().getX() << "," << face.first->getGenerator()->getDisk().getY() << "," 
-    //                   << targetFace.second->getGenerator()->getDisk().getX()  << "," << targetFace.second->getGenerator()->getDisk().getY()  << "\n";
-    //             break;
-    //         }
-    //     }
-    // }
-    // fout3.close();
-    // ------------------------------------ linking odd facecs ---------------------
-    
-    // for (auto& face : faces) {
-    //     if (degFaces[face] == 0) {
-    //         std::cout << "odd face" << std::endl;
-    //     }
-    // }
-    
-    // TODO: eulerian path
-    // TODO: hamillton path
-    
+    minimum_perfect_matching(oddCircles);
     
 }
 
-void HeuristicAlgorithm::minimum_perfect_matching(const vector<VertexBU2D*>& oddFaces) {
-    map<int, int> row;
-    map<int, int> column;
+void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& oddFaces) {
+    std::ofstream mpm("./../data/mpm.txt");
     
-    map<int, bool> status;
-    for (int i = 0; i < oddFaces.size(); ++i) {
-        status.insert({i, false});
-        row.insert({i, 0});
-        column.insert({i, 0});
+    VoronoiDiagram2DC VD;
+    QuasiTriangulation2D QT;
+    BetaUniverse2D BU;
+    
+    list<rg_Circle2D> circles;
+    for (const auto& face : oddFaces) {
+        circles.push_back(*face);
     }
     
-    vector<vector<double>> distanceMatrix;
-    distanceMatrix.resize(oddFaces.size());
-    for (auto& it : distanceMatrix) {
-        it.resize(oddFaces.size(), 10000000000);
-    }
+    VD.constructVoronoiDiagram(circles);
+    QT.construct(VD);
+    BU.construct(QT);
     
-    for (int i = 0; i < oddFaces.size(); ++i) {
-        for (int j = 0; j < oddFaces.size(); ++j) {
-            if (i == j) {
-                break;
-            }
-            else {
-                distanceMatrix[i][j] = oddFaces[i]->getCoord().distance(oddFaces[j]->getCoord());
-            }
-        }
-    }
+    vector<pair<pair<int,int>, double>> distanceEdges;
     
-    HungarianAlgorithm hungAlgo;
-    vector<int> assignment;
+    rg_dList<EdgeBU2D> tempList;
+    tempList = BU.getEdges();
     
-    double cost = hungAlgo.Solve(distanceMatrix, assignment);
-    
-    for (int i = 0; i < distanceMatrix.size(); ++i) {
-        std::cout << i << ", " << assignment[i] << std::endl;
-    }
-    
-    std::cout << "a" << std::endl;
-    
-    // for (int i = 0; i < oddFaces.size(); ++i) {
-    //     double min = *min_element(distanceMatrix[i].begin(), distanceMatrix[i].end());
-    //     for (int j = 0; j < oddFaces.size(); ++j) {
-    //         if (i == j) continue;
-    //         double re = distanceMatrix[i][j] - min;
-    //         distanceMatrix[i][j] = re;
-    //         rotateDistanceMatrix[j][i] = re;
-            
-    //         if ( re == 0 ) {
-    //             row[i] = row[i] + 1;
-    //             column[j] = column[j] + 1;
-    //         }
-    //     }
-    // }
-    
-    // for (int i = 0; i < oddFaces.size(); ++i) {
-    //     double min = *min_element(rotateDistanceMatrix[i].begin(), rotateDistanceMatrix[i].end());
-    //     for (int j = 0; j < oddFaces.size(); ++j) {
-    //         if (i == j) continue;
-    //         double re = distanceMatrix[j][i] - min;
-    //         distanceMatrix[j][i] = re;
-    //         rotateDistanceMatrix[i][j] = re;
-            
-    //         if (re < 0) std::cout << "-" << std::endl;
-    //         if ( re == 0 ) {
-    //             row[i] = row[i] + 1;
-    //             column[j] = column[j] + 1;
-    //         }
-    //     }
+    tempList.reset4Loop();
+    while ( tempList.setNext4Loop() ) {
+        EdgeBU2D currEdge = tempList.getEntity();
         
-    // }
+        if( currEdge.isVirtual() ) {
+            continue;
+        }
+            
+        double distance = currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord());
+        distanceEdges.push_back({{currEdge.getStartVertex()->getID(), currEdge.getEndVertex()->getID()}, distance});
+        // std::cout << currEdge.getStartVertex()->getID() << ": " << currEdge.getStartVertex()->getCoord().getX() << ", " << currEdge.getStartVertex()->getCoord().getY() << std::endl;
+    }
+    
+    int nodes = oddFaces.size();
+    
+    Blossom blossom;
+    vector<pair<int, int>> minimum_perfect_matching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
+    
+    for (auto& it : minimum_perfect_matching) {
+        mpm << m_circles[it.first+1]->getX() << "," << m_circles[it.first+1]->getY() << "," << m_circles[it.second+1]->getX() << "," << m_circles[it.second+1]->getY() << std::endl;
+    }
+    mpm.close();
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
