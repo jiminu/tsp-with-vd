@@ -43,7 +43,9 @@ class HeuristicAlgorithm {
         pair<float, vector<int>> m_bestSolution = {0, {}};
         int m_currGeneration = 0;
         
-        map<int, rg_Circle2D*> m_circles;
+        vector<rg_Circle2D> m_circles;
+        
+        map<rg_Circle2D*, int> m_circlesWithID;
 
         clock_t start, end;
         float result;

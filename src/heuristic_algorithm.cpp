@@ -73,8 +73,8 @@ void HeuristicAlgorithm::generate_vd() {
     
     for (int i = 0; i < m_cities.size(); ++i) {
         rg_Circle2D circle(m_cities[i].x, m_cities[i].y, 0);
-        
-        circles.push_back(circle);
+        m_circles.push_back(circle);
+        circles.push_back(*m_circles.rbegin());
     }
     std::ofstream fout("./../data/delaunay.txt");
     float start = clock();
@@ -84,14 +84,13 @@ void HeuristicAlgorithm::generate_vd() {
     QT.construct(m_VD);
     m_BU.construct(QT);
     
-    list<Generator2D*> ge;
-    m_VD.getGenerators(ge);
-    int id = 0;
-    for (auto& it : ge) {
-        m_circles.insert({it->getID(), it->getDiskPtr()});
+    for (int i = 0; i < m_circles.size(); ++i) {
+        m_circlesWithID.insert({&m_circles[i], i});
     }
     
     multimap<double, EdgeBU2D> distanceSortedEdges;
+    
+    std::cout << m_circlesWithID[&m_circles[2]] << std::endl;
     
     rg_dList<EdgeBU2D> tempList;
     tempList = m_BU.getEdges();
@@ -189,7 +188,7 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     for (auto it : connectedFaces) {
         if (it.second % 2 != 0) {
              fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
-             oddCircles.push_back(m_circles[it.first->getID()]);
+            //  oddCircles.push_back(m_circles[it.first->getID()]);
         }
     }
     fout2.close();
@@ -238,7 +237,7 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& od
     vector<pair<int, int>> minimum_perfect_matching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
     
     for (auto& it : minimum_perfect_matching) {
-        mpm << m_circles[it.first+1]->getX() << "," << m_circles[it.first+1]->getY() << "," << m_circles[it.second+1]->getX() << "," << m_circles[it.second+1]->getY() << std::endl;
+        // mpm << m_circles[it.first+1]->getX() << "," << m_circles[it.first+1]->getY() << "," << m_circles[it.second+1]->getX() << "," << m_circles[it.second+1]->getY() << std::endl;
     }
     mpm.close();
 }
