@@ -76,7 +76,7 @@ void HeuristicAlgorithm::generate_vd() {
         m_circles.push_back(circle);
         circles.push_back(*m_circles.rbegin());
     }
-    std::ofstream fout("./../data/delaunay.txt");
+    std::ofstream delaunay("./../data/delaunay.txt");
     float start = clock();
     m_VD.constructVoronoiDiagram(circles);
     // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
@@ -99,12 +99,12 @@ void HeuristicAlgorithm::generate_vd() {
         if( currEdge.isVirtual() ) {
             continue;
         }
-        fout << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
+        delaunay << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
             << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
             
         distanceSortedEdges.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
     }
-    fout.close();
+    delaunay.close();
     
     
     generate_mst(distanceSortedEdges);
@@ -148,11 +148,9 @@ void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
 }
 
 void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
-    std::ofstream mstOut("./../data/result1.txt");
-    std::ofstream fout2("./../data/odd_face.txt");
-    
-    int count = 0;
-    
+    std::ofstream mstOut("./../data/mst.txt");
+    std::ofstream oddFaceOut("./../data/odd_face.txt");
+        
     map<VertexBU2D*, int> connectedFaces;
     vector<int> set;
     list<EdgeBU2D> resultEdges;
@@ -162,8 +160,6 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     
     for (auto& edge : distanceMap) {
-        // int startVertexID = edge.second.getStartVertex()->getID();
-        // int endVertexID = edge.second.getEndVertex()->getID();
         int startVertexID = m_circlesWithID[{edge.second.getStartVertex()->getCircle().getX(), edge.second.getStartVertex()->getCircle().getY()}];
         int endVertexID = m_circlesWithID[{edge.second.getEndVertex()->getCircle().getX(), edge.second.getEndVertex()->getCircle().getY()}];
         
@@ -186,11 +182,11 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     
     for (auto it : connectedFaces) {
         if (it.second % 2 != 0) {
-            fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
+            oddFaceOut << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
             oddCircles.push_back(it.first->getCircle());
         }
     }
-    fout2.close();
+    oddFaceOut.close();
     
     minimum_perfect_matching(oddCircles);
     
