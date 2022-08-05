@@ -80,18 +80,15 @@ void HeuristicAlgorithm::generate_vd() {
     float start = clock();
     m_VD.constructVoronoiDiagram(circles);
     // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
-    QuasiTriangulation2D QT;
-    QT.construct(m_VD);
-    m_BU.construct(QT);
+    m_QT.construct(m_VD);
+    m_BU.construct(m_QT);
     
     for (int i = 0; i < m_circles.size(); ++i) {
-        m_circlesWithID.insert({&m_circles[i], i});
+        m_circlesWithID.insert({{m_circles[i].getX(), m_circles[i].getY()}, i});
     }
     
     multimap<double, EdgeBU2D> distanceSortedEdges;
-    
-    std::cout << m_circlesWithID[&m_circles[2]] << std::endl;
-    
+
     rg_dList<EdgeBU2D> tempList;
     tempList = m_BU.getEdges();
     
@@ -165,8 +162,10 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     
     for (auto& edge : distanceMap) {
-        int startVertexID = edge.second.getStartVertex()->getID();
-        int endVertexID = edge.second.getEndVertex()->getID();
+        // int startVertexID = edge.second.getStartVertex()->getID();
+        // int endVertexID = edge.second.getEndVertex()->getID();
+        int startVertexID = m_circlesWithID[{edge.second.getStartVertex()->getCircle().getX(), edge.second.getStartVertex()->getCircle().getY()}];
+        int endVertexID = m_circlesWithID[{edge.second.getEndVertex()->getCircle().getX(), edge.second.getEndVertex()->getCircle().getY()}];
         
         if ( find_parents(set, startVertexID) != find_parents(set, endVertexID)) {
             union_parents(set, startVertexID, endVertexID);
@@ -183,12 +182,12 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     mstOut.close();
     
-    vector<rg_Circle2D*> oddCircles;
+    vector<rg_Circle2D> oddCircles;
     
     for (auto it : connectedFaces) {
         if (it.second % 2 != 0) {
-             fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
-            //  oddCircles.push_back(m_circles[it.first->getID()]);
+            fout2 << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
+            oddCircles.push_back(it.first->getCircle());
         }
     }
     fout2.close();
@@ -197,7 +196,7 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     
 }
 
-void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& oddFaces) {
+void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {
     std::ofstream mpm("./../data/mpm.txt");
     
     VoronoiDiagram2DC VD;
@@ -206,7 +205,7 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& od
     
     list<rg_Circle2D> circles;
     for (const auto& face : oddFaces) {
-        circles.push_back(*face);
+        circles.push_back(face);
     }
     
     VD.constructVoronoiDiagram(circles);
@@ -214,7 +213,7 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& od
     BU.construct(QT);
     
     vector<pair<pair<int,int>, double>> distanceEdges;
-    
+    map<int, rg_Circle2D> IDWithCircles;
     rg_dList<EdgeBU2D> tempList;
     tempList = BU.getEdges();
     
@@ -228,6 +227,8 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& od
             
         double distance = currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord());
         distanceEdges.push_back({{currEdge.getStartVertex()->getID(), currEdge.getEndVertex()->getID()}, distance});
+        IDWithCircles.insert({currEdge.getStartVertex()->getID(), currEdge.getStartVertex()->getCircle()});
+        IDWithCircles.insert({currEdge.getEndVertex()->getID(), currEdge.getEndVertex()->getCircle()});
         // std::cout << currEdge.getStartVertex()->getID() << ": " << currEdge.getStartVertex()->getCoord().getX() << ", " << currEdge.getStartVertex()->getCoord().getY() << std::endl;
     }
     
@@ -237,7 +238,12 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D*>& od
     vector<pair<int, int>> minimum_perfect_matching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
     
     for (auto& it : minimum_perfect_matching) {
-        // mpm << m_circles[it.first+1]->getX() << "," << m_circles[it.first+1]->getY() << "," << m_circles[it.second+1]->getX() << "," << m_circles[it.second+1]->getY() << std::endl;
+        double startPointX = m_circles[m_circlesWithID[{IDWithCircles[it.first].getX(), IDWithCircles[it.first].getY()}]].getX();
+        double startPointY = m_circles[m_circlesWithID[{IDWithCircles[it.first].getX(), IDWithCircles[it.first].getY()}]].getY();
+        double endPointX   = m_circles[m_circlesWithID[{IDWithCircles[it.second].getX(), IDWithCircles[it.second].getY()}]].getX();
+        double endPointY   = m_circles[m_circlesWithID[{IDWithCircles[it.second].getX(), IDWithCircles[it.second].getY()}]].getY();
+        
+        mpm << startPointX << "," << startPointY << "," << endPointX << "," <<endPointY << std::endl;
     }
     mpm.close();
 }
