@@ -170,8 +170,11 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
             connectedFaces.insert({edge.second.getEndVertex(), connectedFaces[edge.second.getEndVertex()]++});
             
             resultEdges.push_back(edge.second);
-            mstOut << edge.second.getStartVertex()->getCircle().getX() << "," << edge.second.getStartVertex()->getCircle().getY() << "," 
-                 << edge.second.getEndVertex()->getCircle().getX()  << "," << edge.second.getEndVertex()->getCircle().getY()  << "\n";
+            
+            int startPointID = m_circlesWithID[{edge.second.getStartVertex()->getCircle().getX(), edge.second.getStartVertex()->getCircle().getY()}];
+            int endPointID   = m_circlesWithID[{edge.second.getEndVertex()->getCircle().getX(), edge.second.getEndVertex()->getCircle().getY()}];
+            mstOut << m_circles[startPointID].getX() << "," << m_circles[startPointID].getY() << "," 
+                   << m_circles[endPointID].getX()  << "," << m_circles[endPointID].getY()  << "\n";
             if (resultEdges.size() == m_cities.size() - 1) break;
             continue;
         }
@@ -225,7 +228,6 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
         distanceEdges.push_back({{currEdge.getStartVertex()->getID(), currEdge.getEndVertex()->getID()}, distance});
         IDWithCircles.insert({currEdge.getStartVertex()->getID(), currEdge.getStartVertex()->getCircle()});
         IDWithCircles.insert({currEdge.getEndVertex()->getID(), currEdge.getEndVertex()->getCircle()});
-        // std::cout << currEdge.getStartVertex()->getID() << ": " << currEdge.getStartVertex()->getCoord().getX() << ", " << currEdge.getStartVertex()->getCoord().getY() << std::endl;
     }
     
     int nodes = oddFaces.size();
@@ -234,10 +236,13 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
     vector<pair<int, int>> minimum_perfect_matching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
     
     for (auto& it : minimum_perfect_matching) {
-        double startPointX = m_circles[m_circlesWithID[{IDWithCircles[it.first].getX(), IDWithCircles[it.first].getY()}]].getX();
-        double startPointY = m_circles[m_circlesWithID[{IDWithCircles[it.first].getX(), IDWithCircles[it.first].getY()}]].getY();
-        double endPointX   = m_circles[m_circlesWithID[{IDWithCircles[it.second].getX(), IDWithCircles[it.second].getY()}]].getX();
-        double endPointY   = m_circles[m_circlesWithID[{IDWithCircles[it.second].getX(), IDWithCircles[it.second].getY()}]].getY();
+        int startPointID = m_circlesWithID[{IDWithCircles[it.first].getX(), IDWithCircles[it.first].getY()}];
+        int endPointID   = m_circlesWithID[{IDWithCircles[it.second].getX(), IDWithCircles[it.second].getY()}];
+        
+        double startPointX = m_circles[startPointID].getX();
+        double startPointY = m_circles[startPointID].getY();
+        double endPointX   = m_circles[endPointID].getX();
+        double endPointY   = m_circles[endPointID].getY();
         
         mpm << startPointX << "," << startPointY << "," << endPointX << "," <<endPointY << std::endl;
     }
