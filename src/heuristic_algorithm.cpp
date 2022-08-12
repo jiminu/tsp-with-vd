@@ -9,6 +9,7 @@
 #include "QuasiTriangulation2D.h"
 #include "blossom.h"
 #include "euler.h"
+#include "hamiltonian.h"
 
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
@@ -200,6 +201,7 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
 void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {
     std::ofstream mpm("./../data/mpm.txt");
     std::ofstream eulerOut("./../data/euler_path.txt");
+    std::ofstream hamiltonianOut("./../data/hamiltonian_path.txt");
     
     VoronoiDiagram2DC VD;
     QuasiTriangulation2D QT;
@@ -276,6 +278,20 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
         }
     }
     eulerOut.close();
+    
+    Hamiltonian hamiltonian;
+    vector<int> hamiltonianPath = hamiltonian.run(eulerPath);
+
+    for (int i = 0; i < hamiltonianPath.size(); ++i) {
+        if (i == hamiltonianPath.size() - 1) {
+            hamiltonianOut << m_circles[hamiltonianPath[i]].getX() << "," << m_circles[hamiltonianPath[i]].getY() << ","
+                     << m_circles[hamiltonianPath[0]].getX() << "," << m_circles[hamiltonianPath[0]].getY() << std::endl;
+        } else {
+            hamiltonianOut << m_circles[hamiltonianPath[i]].getX() << "," << m_circles[hamiltonianPath[i]].getY() << ","
+                     << m_circles[hamiltonianPath[i + 1]].getX() << "," << m_circles[hamiltonianPath[i + 1]].getY() << std::endl;
+        }
+    }
+    hamiltonianOut.close();
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
