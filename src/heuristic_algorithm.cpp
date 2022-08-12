@@ -8,7 +8,7 @@
 #include "file_stream.h"
 #include "QuasiTriangulation2D.h"
 #include "blossom.h"
-#include "eul.h"
+#include "euler.h"
 
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
@@ -262,8 +262,8 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
         std::cout << b.first << " : " << b.second << std::endl;
     }
     
-    Eul eul;
-    vector<int> eulerPath = eul.run(m_path, m_circles.size());
+    Euler euler;
+    vector<int> eulerPath = euler.run(m_path, m_circles.size());
     
     for (int i = 0; i < eulerPath.size(); ++i) {
         if (i == eulerPath.size()-1) {
