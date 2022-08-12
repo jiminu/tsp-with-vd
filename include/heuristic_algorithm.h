@@ -45,6 +45,7 @@ class HeuristicAlgorithm {
         int m_currGeneration = 0;
         
         vector<rg_Circle2D> m_circles;
+        vector<pair<int,int>> m_path;
         
         // map<rg_Circle2D*, int> m_circlesWithID;
         map<pair<double, double>, int> m_circlesWithID;

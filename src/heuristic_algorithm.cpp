@@ -7,8 +7,8 @@
 
 #include "file_stream.h"
 #include "QuasiTriangulation2D.h"
-#include "Hungarian.h"
 #include "blossom.h"
+#include "eul.h"
 
 HeuristicAlgorithm::HeuristicAlgorithm() {
     start = clock();
@@ -175,6 +175,8 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
             int endPointID   = m_circlesWithID[{edge.second.getEndVertex()->getCircle().getX(), edge.second.getEndVertex()->getCircle().getY()}];
             mstOut << m_circles[startPointID].getX() << "," << m_circles[startPointID].getY() << "," 
                    << m_circles[endPointID].getX()  << "," << m_circles[endPointID].getY()  << "\n";
+            
+            m_path.push_back({startPointID, endPointID});
             if (resultEdges.size() == m_cities.size() - 1) break;
             continue;
         }
@@ -197,6 +199,7 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
 
 void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {
     std::ofstream mpm("./../data/mpm.txt");
+    std::ofstream eulerOut("./../data/euler_path.txt");
     
     VoronoiDiagram2DC VD;
     QuasiTriangulation2D QT;
@@ -233,6 +236,7 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
     int nodes = oddFaces.size();
     
     Blossom blossom;
+    
     vector<pair<int, int>> minimum_perfect_matching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
     
     for (auto& it : minimum_perfect_matching) {
@@ -244,9 +248,34 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
         double endPointX   = m_circles[endPointID].getX();
         double endPointY   = m_circles[endPointID].getY();
         
+        m_path.push_back({startPointID, endPointID});
         mpm << startPointX << "," << startPointY << "," << endPointX << "," <<endPointY << std::endl;
     }
     mpm.close();
+    
+    map<int, int> a;
+    for (auto b : m_path) {
+        a[b.first]++;
+        a[b.second]++;
+    }
+    for (auto b : a) {
+        std::cout << b.first << " : " << b.second << std::endl;
+    }
+    
+    Eul eul;
+    vector<int> eulerPath = eul.run(m_path, m_circles.size());
+    
+    for (int i = 0; i < eulerPath.size(); ++i) {
+        if (i == eulerPath.size()-1) {
+            eulerOut << m_circles[eulerPath[i]].getX() << "," << m_circles[eulerPath[i]].getY() << ","
+                     << m_circles[eulerPath[0]].getX() << "," << m_circles[eulerPath[0]].getY() << std::endl;
+        }
+        else {
+            eulerOut << m_circles[eulerPath[i]].getX() << "," << m_circles[eulerPath[i]].getY() << ","
+                     << m_circles[eulerPath[i + 1]].getX() << "," << m_circles[eulerPath[i + 1]].getY() << std::endl;
+        }
+    }
+    eulerOut.close();
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
