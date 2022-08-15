@@ -20,13 +20,13 @@ using namespace V::GeometryTier;
 class HeuristicAlgorithm {
     private:
         
-        const float m_selectionPressure  = 3;
-        const float m_eliteProportion    = 0.2;
-        const float m_crossoverParameter = 0.7;
-        const float m_mutationParameter  = 0.2;
-        const int m_population           = 100;
-        const int m_generation           = 10000000;
-        const string m_mutation          = "inversion";
+        float m_selectionPressure  = 3;
+        float m_eliteProportion    = 0.2;
+        float m_crossoverParameter = 0.7;
+        float m_mutationParameter  = 0.2;
+        int m_population           = 100;
+        int m_generation           = 10000000;
+        string m_mutation          = "displacement";
         
         vector<vector<float>> m_distanceMatrix;
 
@@ -41,13 +41,13 @@ class HeuristicAlgorithm {
         QuasiTriangulation2D m_QT;
         BetaUniverse2D m_BU;
         vector<City> m_cities;
+        
         pair<float, vector<int>> m_bestSolution = {0, {}};
         int m_currGeneration = 0;
         
         vector<rg_Circle2D> m_circles;
-        vector<pair<int,int>> m_path;
+        vector<pair<int,int>> m_candidateEdges;
         
-        // map<rg_Circle2D*, int> m_circlesWithID;
         map<pair<double, double>, int> m_circlesWithID;
 
         clock_t start, end;
@@ -68,6 +68,7 @@ class HeuristicAlgorithm {
         void mutation(pair<float, vector<int>>& offspring);
         
         void generate_vd();
+        vector<pair<float, vector<int>>> initialize_chromosome_with_christofides_algorithm();
         vector<pair<float, vector<int>>> initialize_chromosome_with_VD(const int& population);
         vector<int> generate_chromosome(const list<VFace2D*>& faces);
 
@@ -78,8 +79,9 @@ class HeuristicAlgorithm {
                            multimap<int, VFace2D*>& chainCountEdges,
                            vector<list<VFace2D*>>& connectedChain,
                            map<VFace2D*, int>& connectedFaces);
-        void generate_mst(const multimap<double, EdgeBU2D>& distanceMap);
-        void minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces);
+        void generate_mst_mpm();
+        void generate_minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces);
+        vector<int> generate_path();
 
         int find_parents(vector<int>& set, const int id);
         void union_parents(vector<int>& set, int a, int b);

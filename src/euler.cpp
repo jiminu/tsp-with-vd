@@ -2,28 +2,28 @@
 
 void Euler::dfs(int u){
     while(1){
-        while(!pathVector[u].empty() && check[pathVector[u].top().second]) {
-            pathVector[u].pop(); // 이미 쓰여진 간선이면 pop
+        while(!m_pathVector[u].empty() && m_check[m_pathVector[u].top().second]) {
+            m_pathVector[u].pop(); // 이미 쓰여진 간선이면 pop
         }
-        if(pathVector[u].empty()) break;
+        if(m_pathVector[u].empty()) break;
 
-        auto temp = pathVector[u].top(); 
-        pathVector[u].pop();
-        check[temp.second] = 1, dfs(temp.first); // y번 간선을 사용했음을 표시하고 알고리즘을 계속한다.
+        auto temp = m_pathVector[u].top(); 
+        m_pathVector[u].pop();
+        m_check[temp.second] = 1, dfs(temp.first); // y번 간선을 사용했음을 표시하고 알고리즘을 계속한다.
     }
 
-    result.push_back(u);
+    m_path.push_back(u);
 }
 
-vector<int> Euler::run(const vector<pair<int,int>>& edges, const int& n) {
+Euler::Euler(const vector<pair<int,int>>& edges, const int& n) {
     vector<vector<int>> adjMatrix;
     
-    pathVector.resize(edges.size());
+    m_pathVector.resize(edges.size());
     adjMatrix.resize(n);
     for (auto& row : adjMatrix) {
         row.resize(n);   
     }
-    int id;
+    int id = 0;
     
     for (auto& edge : edges) {
         adjMatrix[edge.first][edge.second]++;
@@ -35,14 +35,14 @@ vector<int> Euler::run(const vector<pair<int,int>>& edges, const int& n) {
     		while(adjMatrix[i][j]){
     			adjMatrix[i][j]--;
                 id++;
-    			pathVector[i].push({j, id}), pathVector[j].push({i, id}); 
+    			m_pathVector[i].push({j, id}), m_pathVector[j].push({i, id}); 
     		}
     	}
     }
-    check.resize(id + 1);
+    m_check.resize(id + 1);
 
 
     dfs(0);
-    
-    return result;
 }
+
+vector<int> Euler::get_path() { return m_path; }
