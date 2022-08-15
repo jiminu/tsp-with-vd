@@ -5,8 +5,7 @@
 
 using std::map;
 
-vector<int> Hamiltonian::run(const vector<int>& eulerPath) {
-    vector<int> result;
+Hamiltonian::Hamiltonian(const vector<int>& eulerPath) {
     map<int, int> check;
     
     for (auto node : eulerPath) {
@@ -14,16 +13,11 @@ vector<int> Hamiltonian::run(const vector<int>& eulerPath) {
             continue;
         }
         check[node] = 1;
-        result.push_back(node);
+        m_path.push_back(node);
     }
     
-    for (auto a : result) {
-        std::cout << a << " ";
-    }
-    std::cout << std::endl;
-    std::cout << result.size() << std::endl;
-    
-    
-    
-    return result;
+    // m_path.push_back(0);
 }
+
+vector<int> Hamiltonian::get_path() { return m_path; }
+        

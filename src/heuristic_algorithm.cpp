@@ -16,8 +16,9 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     generate_cities();
     // generate_distance_matrix();
     generate_vd();
+    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_christofides_algorithm();
 
-    float start = clock();
+    // float start = clock();
     
     // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
     // // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
@@ -36,16 +37,16 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     //     std::cout << it.first << std::endl;
     // }
 
-    // for (int i = 0; i < m_generation; ++i) {
-    //     // populations = selection(populations);
-    //     // populations = crossover(populations);
+    for (int i = 0; i < m_generation; ++i) {
+        populations = selection(populations);
+        populations = crossover(populations);
         
-    //     m_currGeneration = i;
-    //     // if (i % 100 == 0) {
-    //         std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-    //     // }
-    // }
-    // end = clock();
+        m_currGeneration = i;
+        // if (i % 100 == 0) {
+            std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
+        // }
+    }
+    end = clock();
     // result = end - start;
     // info = {m_selectionPressure, 
     //                       m_crossoverParameter, 
@@ -77,7 +78,7 @@ void HeuristicAlgorithm::generate_vd() {
         m_circles.push_back(circle);
         circles.push_back(*m_circles.rbegin());
     }
-    std::ofstream delaunay("./../data/delaunay.txt");
+    
     float start = clock();
     m_VD.constructVoronoiDiagram(circles);
     // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
@@ -87,28 +88,7 @@ void HeuristicAlgorithm::generate_vd() {
     for (int i = 0; i < m_circles.size(); ++i) {
         m_circlesWithID.insert({{m_circles[i].getX(), m_circles[i].getY()}, i});
     }
-    
-    multimap<double, EdgeBU2D> distanceSortedEdges;
 
-    rg_dList<EdgeBU2D> tempList;
-    tempList = m_BU.getEdges();
-    
-    tempList.reset4Loop();
-    while ( tempList.setNext4Loop() ) {
-        EdgeBU2D currEdge = tempList.getEntity();
-        
-        if( currEdge.isVirtual() ) {
-            continue;
-        }
-        delaunay << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
-            << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
-            
-        distanceSortedEdges.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
-    }
-    delaunay.close();
-    
-    
-    generate_mst(distanceSortedEdges);
     float end = clock();
     
     std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
@@ -148,10 +128,47 @@ void HeuristicAlgorithm::union_parents(vector<int>& set, int a, int b) {
     }
 }
 
-void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distanceMap) {
+vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_christofides_algorithm() {
+    vector<pair<float, vector<int>>> result;
+
+    generate_mst_mpm();
+    int tempSave = m_mutationParameter;
+    m_mutationParameter = 1;
+    
+    for (int i = 0; i < m_population; ++i) {
+        vector<int> path = generate_path();
+        result.push_back({evaluate_function(path), path});
+        mutation(result.back());
+    }
+    m_mutationParameter = tempSave;
+    
+    return result;
+}
+
+void HeuristicAlgorithm::generate_mst_mpm() {
+    std::ofstream delaunay("./../data/delaunay.txt");
     std::ofstream mstOut("./../data/mst.txt");
     std::ofstream oddFaceOut("./../data/odd_face.txt");
+    
+    multimap<double, EdgeBU2D> distanceSortedEdges;
+
+    rg_dList<EdgeBU2D> tempList;
+    tempList = m_BU.getEdges();
+    
+    tempList.reset4Loop();
+    while ( tempList.setNext4Loop() ) {
+        EdgeBU2D currEdge = tempList.getEntity();
         
+        if( currEdge.isVirtual() ) {
+            continue;
+        }
+        delaunay << currEdge.getStartVertex()->getCircle().getX() << "," << currEdge.getStartVertex()->getCircle().getY() << "," 
+                 << currEdge.getEndVertex()->getCircle().getX() << "," << currEdge.getEndVertex()->getCircle().getY() << "\n";
+            
+        distanceSortedEdges.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
+    }
+    delaunay.close();
+    
     map<VertexBU2D*, int> connectedFaces;
     vector<int> set;
     list<EdgeBU2D> resultEdges;
@@ -160,7 +177,7 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
         set.push_back(i);
     }
     
-    for (auto& edge : distanceMap) {
+    for (auto& edge : distanceSortedEdges) {
         int startVertexID = m_circlesWithID[{edge.second.getStartVertex()->getCircle().getX(), edge.second.getStartVertex()->getCircle().getY()}];
         int endVertexID = m_circlesWithID[{edge.second.getEndVertex()->getCircle().getX(), edge.second.getEndVertex()->getCircle().getY()}];
         
@@ -177,7 +194,7 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
             mstOut << m_circles[startPointID].getX() << "," << m_circles[startPointID].getY() << "," 
                    << m_circles[endPointID].getX()  << "," << m_circles[endPointID].getY()  << "\n";
             
-            m_path.push_back({startPointID, endPointID});
+            m_candidateEdges.push_back({startPointID, endPointID});
             if (resultEdges.size() == m_cities.size() - 1) break;
             continue;
         }
@@ -194,14 +211,12 @@ void HeuristicAlgorithm::generate_mst(const multimap<double, EdgeBU2D>& distance
     }
     oddFaceOut.close();
     
-    minimum_perfect_matching(oddCircles);
+    generate_minimum_perfect_matching(oddCircles);
     
 }
 
-void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {
+void HeuristicAlgorithm::generate_minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {
     std::ofstream mpm("./../data/mpm.txt");
-    std::ofstream eulerOut("./../data/euler_path.txt");
-    std::ofstream hamiltonianOut("./../data/hamiltonian_path.txt");
     
     VoronoiDiagram2DC VD;
     QuasiTriangulation2D QT;
@@ -239,9 +254,9 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
     
     Blossom blossom;
     
-    vector<pair<int, int>> minimum_perfect_matching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
+    vector<pair<int, int>> minimumPerfectMatching = blossom.MinimumCostPerfectMatchingExample(nodes, distanceEdges);
     
-    for (auto& it : minimum_perfect_matching) {
+    for (auto& it : minimumPerfectMatching) {
         int startPointID = m_circlesWithID[{IDWithCircles[it.first].getX(), IDWithCircles[it.first].getY()}];
         int endPointID   = m_circlesWithID[{IDWithCircles[it.second].getX(), IDWithCircles[it.second].getY()}];
         
@@ -250,22 +265,18 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
         double endPointX   = m_circles[endPointID].getX();
         double endPointY   = m_circles[endPointID].getY();
         
-        m_path.push_back({startPointID, endPointID});
+        m_candidateEdges.push_back({startPointID, endPointID});
         mpm << startPointX << "," << startPointY << "," << endPointX << "," <<endPointY << std::endl;
     }
     mpm.close();
+}
+
+vector<int> HeuristicAlgorithm::generate_path() {
+    std::ofstream eulerOut("./../data/euler_path.txt");
+    std::ofstream hamiltonianOut("./../data/hamiltonian_path.txt");
     
-    map<int, int> a;
-    for (auto b : m_path) {
-        a[b.first]++;
-        a[b.second]++;
-    }
-    for (auto b : a) {
-        std::cout << b.first << " : " << b.second << std::endl;
-    }
-    
-    Euler euler;
-    vector<int> eulerPath = euler.run(m_path, m_circles.size());
+    Euler euler(m_candidateEdges, m_circles.size());
+    vector<int> eulerPath = euler.get_path();
     
     for (int i = 0; i < eulerPath.size(); ++i) {
         if (i == eulerPath.size()-1) {
@@ -279,19 +290,21 @@ void HeuristicAlgorithm::minimum_perfect_matching(const vector<rg_Circle2D>& odd
     }
     eulerOut.close();
     
-    Hamiltonian hamiltonian;
-    vector<int> hamiltonianPath = hamiltonian.run(eulerPath);
+    Hamiltonian hamiltonian(eulerPath);
+    vector<int> hamiltonianPath = hamiltonian.get_path();
 
     for (int i = 0; i < hamiltonianPath.size(); ++i) {
         if (i == hamiltonianPath.size() - 1) {
             hamiltonianOut << m_circles[hamiltonianPath[i]].getX() << "," << m_circles[hamiltonianPath[i]].getY() << ","
-                     << m_circles[hamiltonianPath[0]].getX() << "," << m_circles[hamiltonianPath[0]].getY() << std::endl;
+                           << m_circles[hamiltonianPath[0]].getX() << "," << m_circles[hamiltonianPath[0]].getY() << std::endl;
         } else {
             hamiltonianOut << m_circles[hamiltonianPath[i]].getX() << "," << m_circles[hamiltonianPath[i]].getY() << ","
-                     << m_circles[hamiltonianPath[i + 1]].getX() << "," << m_circles[hamiltonianPath[i + 1]].getY() << std::endl;
+                           << m_circles[hamiltonianPath[i + 1]].getX() << "," << m_circles[hamiltonianPath[i + 1]].getY() << std::endl;
         }
     }
     hamiltonianOut.close();
+    
+    return hamiltonianPath;
 }
 
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_VD(const int& population) {
