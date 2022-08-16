@@ -41,8 +41,11 @@ Euler::Euler(const vector<pair<int,int>>& edges, const int& n) {
     }
     m_check.resize(id + 1);
 
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<int> dis(0, n);
 
-    dfs(0);
+    dfs(dis(gen));
 }
 
 vector<int> Euler::get_path() { return m_path; }

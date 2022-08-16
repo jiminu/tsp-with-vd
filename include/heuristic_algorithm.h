@@ -26,7 +26,7 @@ class HeuristicAlgorithm {
         float m_mutationParameter  = 0.2;
         int m_population           = 100;
         int m_generation           = 10000000;
-        string m_mutation          = "displacement";
+        string m_mutation          = "inversion";
         
         vector<vector<float>> m_distanceMatrix;
 
