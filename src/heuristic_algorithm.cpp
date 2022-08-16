@@ -132,7 +132,7 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     vector<pair<float, vector<int>>> result;
 
     generate_mst_mpm();
-    int tempSave = m_mutationParameter;
+    float tempSave = m_mutationParameter;
     m_mutationParameter = 1;
     
     for (int i = 0; i < m_population; ++i) {
@@ -345,7 +345,7 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
     
     auto currFaceIter = chainCountEdges.begin();
     auto currFace = chainCountEdges.begin()->second;
-    while (chainCountEdges.count(0) > 0) {        
+    while (chainCountEdges.count(0) > 0 || chainCountEdges.count(1) != 0) {        
         list<VEdge2D*> boundaryEdges;
         currFace->getBoundaryVEdges(boundaryEdges);
         map<float, VFace2D*> boundaryFaces;
@@ -410,7 +410,8 @@ vector<int> HeuristicAlgorithm::generate_chromosome(const list<VFace2D*>& faces)
         }
     }
     for (const auto& city : connectedChain[0]) {
-        result.push_back(city->getID()-1);
+        // result.push_back(city->getID()-1);
+        result.push_back(m_circlesWithID[{city->getGenerator()->getDisk().getX(), city->getGenerator()->getDisk().getY()}]);
     }
     fout.close();
     return result;
