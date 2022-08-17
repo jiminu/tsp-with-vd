@@ -22,7 +22,7 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     
     // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
     // // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
-    // float end = clock();
+    float end = clock();
     // vector<float> info = {m_selectionPressure, 
     //                       m_crossoverParameter, 
     //                       m_mutationParameter, 
@@ -31,7 +31,7 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     //                       m_eliteProportion, 
     //                       result / CLOCKS_PER_SEC};
     // save_best_solution(info);
-    // std::cout << "initialize chromosome time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    std::cout << "initialize time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
 
     // for (auto it : populations) {
     //     std::cout << it.first << std::endl;
@@ -82,6 +82,9 @@ void HeuristicAlgorithm::generate_vd() {
     float start = clock();
     m_VD.constructVoronoiDiagram(circles);
     // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
+    float end = clock();
+    std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+
     m_QT.construct(m_VD);
     m_BU.construct(m_QT);
     
@@ -89,9 +92,6 @@ void HeuristicAlgorithm::generate_vd() {
         m_circlesWithID.insert({{m_circles[i].getX(), m_circles[i].getY()}, i});
     }
 
-    float end = clock();
-    
-    std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
     string face_path = "./../data/answer_voronoi_faces.txt";
     string edge_path = "./../data/answer_voronoi_edges.txt";
@@ -135,11 +135,15 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     float tempSave = m_mutationParameter;
     m_mutationParameter = 1;
     
+    float start = clock();
     for (int i = 0; i < m_population; ++i) {
         vector<int> path = generate_path();
         result.push_back({evaluate_function(path), path});
         mutation(result.back());
     }
+    float end = clock();
+    std::cout << "generate path time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    
     m_mutationParameter = tempSave;
     
     return result;
@@ -154,7 +158,7 @@ void HeuristicAlgorithm::generate_mst_mpm() {
 
     rg_dList<EdgeBU2D> tempList;
     tempList = m_BU.getEdges();
-    
+    float start = clock();
     tempList.reset4Loop();
     while ( tempList.setNext4Loop() ) {
         EdgeBU2D currEdge = tempList.getEntity();
@@ -168,11 +172,15 @@ void HeuristicAlgorithm::generate_mst_mpm() {
         distanceSortedEdges.insert({currEdge.getStartVertex()->getCoord().distance(currEdge.getEndVertex()->getCoord()), currEdge});
     }
     delaunay.close();
+    float end = clock();
+    std::cout << "delaunay edge construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    
     
     map<VertexBU2D*, int> connectedFaces;
     vector<int> set;
     list<EdgeBU2D> resultEdges;
     
+    start = clock();
     for (int i = 0; i < m_cities.size(); ++i) {
         set.push_back(i);
     }
@@ -201,6 +209,10 @@ void HeuristicAlgorithm::generate_mst_mpm() {
     }
     mstOut.close();
     
+    end = clock();
+    std::cout << "minimum spanning tree construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    
+    
     vector<rg_Circle2D> oddCircles;
     
     for (auto it : connectedFaces) {
@@ -211,7 +223,10 @@ void HeuristicAlgorithm::generate_mst_mpm() {
     }
     oddFaceOut.close();
     
+    start = clock();
     generate_minimum_perfect_matching(oddCircles);
+    end = clock();
+    std::cout << "minimum perfect matching construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
 }
 
@@ -275,8 +290,11 @@ vector<int> HeuristicAlgorithm::generate_path() {
     std::ofstream eulerOut("./../data/euler_path.txt");
     std::ofstream hamiltonianOut("./../data/hamiltonian_path.txt");
     
+    float start = clock();
     Euler euler(m_candidateEdges, m_circles.size());
     vector<int> eulerPath = euler.get_path();
+    float end = clock();
+    std::cout << "euler path construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
     for (int i = 0; i < eulerPath.size(); ++i) {
         if (i == eulerPath.size()-1) {
@@ -290,9 +308,12 @@ vector<int> HeuristicAlgorithm::generate_path() {
     }
     eulerOut.close();
     
+    start = clock();
     Hamiltonian hamiltonian(eulerPath);
     vector<int> hamiltonianPath = hamiltonian.get_path();
-
+    end = clock();
+    std::cout << "hamiltonian path construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    
     for (int i = 0; i < hamiltonianPath.size(); ++i) {
         if (i == hamiltonianPath.size() - 1) {
             hamiltonianOut << m_circles[hamiltonianPath[i]].getX() << "," << m_circles[hamiltonianPath[i]].getY() << ","
