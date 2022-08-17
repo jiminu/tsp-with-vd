@@ -12,6 +12,7 @@ FileStream::FileStream() {
 }
 
 void FileStream::read(const string& fileName) {
+    float start = clock();
     std::ifstream file(fileName);
     int run = 0;
     string line;
@@ -31,6 +32,8 @@ void FileStream::read(const string& fileName) {
         std::cout << "file open fail" << std::endl;
         exit(0);
     }
+    float end = clock();
+    std::cout << "file read time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
 }
 
 // void FileStream::read(const string& fileName) {
@@ -126,31 +129,31 @@ void FileStream::write_to_vertices(const string& fileName, const list<VVertex2D*
     fout.close();
 }
 
-City FileStream::split_xy(const string& str) {
-    City city;
-    
-    city.x = std::stof(str.substr(4, 3));
-    city.y = std::stof(str.substr(8, 3));
-    
-    return city;
-}
-
-// City FileStream::split_xy(const string& str)  {
-//     std::istringstream split_str(str); 
-//     string buffer;
+// City FileStream::split_xy(const string& str) {
 //     City city;
-//     int i = 0;
-//     while(std::getline(split_str, buffer, ' ')) {
-//         if(i == 1) {
-//             city.x = stof(buffer);
-//         }
-//         else if(i == 2) {
-//             city.y = stof(buffer);
-//         }
-//         ++i;
-//     }
+    
+//     city.x = std::stof(str.substr(4, 3));
+//     city.y = std::stof(str.substr(8, 3));
+    
 //     return city;
 // }
+
+City FileStream::split_xy(const string& str)  {
+    std::istringstream split_str(str); 
+    string buffer;
+    City city;
+    int i = 0;
+    while(std::getline(split_str, buffer, ' ')) {
+        if(i == 1) {
+            city.x = stof(buffer);
+        }
+        else if(i == 2) {
+            city.y = stof(buffer);
+        }
+        ++i;
+    }
+    return city;
+}
 
 vector<City>& FileStream::get_cities() {
     return m_citiesVector;
