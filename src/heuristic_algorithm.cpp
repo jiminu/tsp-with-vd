@@ -231,7 +231,7 @@ void HeuristicAlgorithm::generate_mst_mpm() {
 }
 
 void HeuristicAlgorithm::generate_minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {
-    std::ofstream mpm("./../data/mpm.txt");
+    std::ofstream mpmOut("./../data/mpm.txt");
     
     VoronoiDiagram2DC VD;
     QuasiTriangulation2D QT;
@@ -281,20 +281,17 @@ void HeuristicAlgorithm::generate_minimum_perfect_matching(const vector<rg_Circl
         double endPointY   = m_circles[endPointID].getY();
         
         m_candidateEdges.push_back({startPointID, endPointID});
-        mpm << startPointX << "," << startPointY << "," << endPointX << "," <<endPointY << std::endl;
+        mpmOut << startPointX << "," << startPointY << "," << endPointX << "," <<endPointY << std::endl;
     }
-    mpm.close();
+    mpmOut.close();
 }
 
 vector<int> HeuristicAlgorithm::generate_path() {
     std::ofstream eulerOut("./../data/euler_path.txt");
     std::ofstream hamiltonianOut("./../data/hamiltonian_path.txt");
     
-    float start = clock();
     Euler euler(m_candidateEdges, m_circles.size());
     vector<int> eulerPath = euler.get_path();
-    float end = clock();
-    std::cout << "euler path construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
     for (int i = 0; i < eulerPath.size(); ++i) {
         if (i == eulerPath.size()-1) {
@@ -308,11 +305,8 @@ vector<int> HeuristicAlgorithm::generate_path() {
     }
     eulerOut.close();
     
-    start = clock();
     Hamiltonian hamiltonian(eulerPath);
     vector<int> hamiltonianPath = hamiltonian.get_path();
-    end = clock();
-    std::cout << "hamiltonian path construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
     for (int i = 0; i < hamiltonianPath.size(); ++i) {
         if (i == hamiltonianPath.size() - 1) {
