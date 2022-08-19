@@ -8,8 +8,6 @@ class Euler {
         vector<stack<pair<int, int>>> m_pathVector;
         vector<int> m_check;
         vector<int> m_path;
-        int **m_adjMatrix;
-        int m_size;
 
     public:
         Euler() {};
