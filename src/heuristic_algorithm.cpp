@@ -139,7 +139,7 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     for (int i = 0; i < m_population; ++i) {
         vector<int> path = generate_path();
         result.push_back({evaluate_function(path), path});
-        mutation(result.back());
+        // mutation(result.back());
     }
     float end = clock();
     std::cout << "generate path time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;

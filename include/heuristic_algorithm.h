@@ -34,7 +34,7 @@ class HeuristicAlgorithm {
         string m_distanceMatrixFile  = "./../data/dist.txt";
         
         string m_savePath = "./../data/";
-        string m_saveFile = "pla33810result.txt";
+        string m_saveFile = "tsp_data_result.txt";
     
         VoronoiDiagram2DC m_VD;
         // VoronoiDiagramCIC m_VD;
