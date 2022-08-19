@@ -20,15 +20,15 @@ Euler::Euler(const vector<pair<int,int>>& edges, const int& n) {
     map<pair<int, int>, int> adj;
     
     m_pathVector.resize(edges.size());
-    adjMatrix.resize(n);
-    for (auto& row : adjMatrix) {
-        row.resize(n);   
-    }
+    // adjMatrix.resize(n);
+    // for (auto& row : adjMatrix) {
+    //     row.resize(n);   
+    // }
     int id = 0;
     
     for (auto& edge : edges) {        
-        adjMatrix[edge.first][edge.second]++;
-        adjMatrix[edge.second][edge.first]++;
+        // adjMatrix[edge.first][edge.second]++;
+        // adjMatrix[edge.second][edge.first]++;
         
         if (edge.first < edge.second) adj[{edge.first, edge.second}]++;
         else adj[{edge.second, edge.first}]++;
