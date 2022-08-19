@@ -30,11 +30,11 @@ class HeuristicAlgorithm {
         
         vector<vector<float>> m_distanceMatrix;
 
-        string m_tspFile  = "./../data/tsp_data.txt";
+        string m_tspFile  = "./../data/pr1002.txt";
         string m_distanceMatrixFile  = "./../data/dist.txt";
         
         string m_savePath = "./../data/";
-        string m_saveFile = "tsp_data_result.txt";
+        string m_saveFile = "pr1002_result.txt";
     
         VoronoiDiagram2DC m_VD;
         // VoronoiDiagramCIC m_VD;
