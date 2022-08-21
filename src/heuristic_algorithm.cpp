@@ -203,6 +203,7 @@ void HeuristicAlgorithm::generate_mst_mpm() {
                    << m_circles[endPointID].getX()  << "," << m_circles[endPointID].getY()  << "\n";
             
             m_candidateEdges.push_back({startPointID, endPointID});
+            m_candidateEdges.push_back({startPointID, endPointID});
             if (resultEdges.size() == m_cities.size() - 1) break;
             continue;
         }
@@ -215,16 +216,16 @@ void HeuristicAlgorithm::generate_mst_mpm() {
     
     vector<rg_Circle2D> oddCircles;
     
-    for (auto it : connectedFaces) {
-        if (it.second % 2 != 0) {
-            oddFaceOut << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
-            oddCircles.push_back(it.first->getCircle());
-        }
-    }
+    // for (auto it : connectedFaces) {
+    //     if (it.second % 2 != 0) {
+    //         oddFaceOut << it.first->getCircle().getX() << "," << it.first->getCircle().getY() << "\n";
+    //         oddCircles.push_back(it.first->getCircle());
+    //     }
+    // }
     oddFaceOut.close();
     
     start = clock();
-    generate_minimum_perfect_matching(oddCircles);
+    // generate_minimum_perfect_matching(oddCircles);
     end = clock();
     std::cout << "minimum perfect matching construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     
