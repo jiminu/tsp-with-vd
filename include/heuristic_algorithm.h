@@ -61,6 +61,7 @@ class HeuristicAlgorithm {
     float pathTime;
     float totalTime;
     float fitnessValue;
+    string m_algorithm;
 
    public:
     HeuristicAlgorithm() {};
