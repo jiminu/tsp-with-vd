@@ -15,7 +15,7 @@ int main(int, char**) {
                                     "d493",
                                     "vm1084",
                                     "d1291"};
-    string algorithm = "2app";
+    string algorithm = "christofides";
     
     // for (auto str : smallDataList) {
     //     std::cout << str << std::endl;
