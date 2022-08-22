@@ -11,13 +11,25 @@
 #include "euler.h"
 #include "hamiltonian.h"
 
-HeuristicAlgorithm::HeuristicAlgorithm() {
+HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileName, const string& algorithm) {
+    m_tspFile = path + fileName + ".txt";
+    m_saveFile = path + fileName + "_result.txt";
     start = clock();
     generate_cities();
     // generate_distance_matrix();
     generate_vd();
     vector<pair<float, vector<int>>> populations = initialize_chromosome_with_christofides_algorithm();
 
+    std::ofstream information(path+fileName+"_"+algorithm+".txt");
+    information << "voronoi diagram : " << VDTime << "\n" 
+                << "delaunay triangulation : " << DTTime << "\n" 
+                << "minimum spanning tree : " << MSTTime << "\n"
+                << "minimum perfect matching : " << MPMTime << "\n"
+                << "generate path : " << pathTime << "\n" 
+                << "total time : " << totalTime << "\n"
+                << "fitness value : " << fitnessValue
+                << std::endl;
+    information.close();
     // float start = clock();
     
     // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
@@ -32,20 +44,20 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     //                       result / CLOCKS_PER_SEC};
     // save_best_solution(info);
     std::cout << "initialize time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
-
+    totalTime = (end - start) / CLOCKS_PER_SEC;
     // for (auto it : populations) {
     //     std::cout << it.first << std::endl;
     // }
 
-    for (int i = 0; i < m_generation; ++i) {
-        populations = selection(populations);
-        populations = crossover(populations);
+    // for (int i = 0; i < m_generation; ++i) {
+    //     populations = selection(populations);
+    //     populations = crossover(populations);
         
-        m_currGeneration = i;
-        // if (i % 100 == 0) {
-            std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-        // }
-    }
+    //     m_currGeneration = i;
+    //     // if (i % 100 == 0) {
+    //         std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
+    //     // }
+    // }
     end = clock();
     // result = end - start;
     // info = {m_selectionPressure, 
@@ -84,6 +96,7 @@ void HeuristicAlgorithm::generate_vd() {
     // m_VD.constructVoronoiDiagramCIC_noContainerInInput(circles);
     float end = clock();
     std::cout << "generate voronoi diagram time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    VDTime = (end - start) / CLOCKS_PER_SEC;
 
     m_QT.construct(m_VD);
     m_BU.construct(m_QT);
@@ -145,6 +158,9 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome_with_
     std::cout << "generate path time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
     std::cout << "fitness : " << result[0].first << std::endl;
     
+    pathTime = (end - start) / CLOCKS_PER_SEC;
+    fitnessValue = result[0].first;
+    
     
     m_mutationParameter = tempSave;
     
@@ -176,7 +192,7 @@ void HeuristicAlgorithm::generate_mst_mpm() {
     delaunay.close();
     float end = clock();
     std::cout << "delaunay edge construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
-    
+    DTTime = (end - start) / CLOCKS_PER_SEC;
     
     map<VertexBU2D*, int> connectedFaces;
     vector<int> set;
@@ -216,7 +232,7 @@ void HeuristicAlgorithm::generate_mst_mpm() {
     
     end = clock();
     std::cout << "minimum spanning tree construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
-    
+    MSTTime = (end - start) / CLOCKS_PER_SEC;
     
     vector<rg_Circle2D> oddCircles;
     
@@ -226,13 +242,13 @@ void HeuristicAlgorithm::generate_mst_mpm() {
     //         oddCircles.push_back(it.first->getCircle());
     //     }
     // }
-    oddFaceOut.close();
+    // oddFaceOut.close();
     
     start = clock();
     // generate_minimum_perfect_matching(oddCircles);
     end = clock();
     std::cout << "minimum perfect matching construct time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
-    
+    MPMTime = (end - start) / CLOCKS_PER_SEC;
 }
 
 void HeuristicAlgorithm::generate_minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces) {

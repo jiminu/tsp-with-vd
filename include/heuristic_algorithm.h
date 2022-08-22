@@ -1,133 +1,121 @@
 #pragma once
 
-#include<string>
-#include<vector>
-#include<map>
-#include<ctime>
-#include "city.h"
 #include <VoronoiDiagram2DC.h>
 #include <VoronoiDiagramCIC.h>
-#include "BetaUniverse2D.h"
 
-using std::vector;
+#include <ctime>
+#include <map>
+#include <string>
+#include <vector>
+
+#include "BetaUniverse2D.h"
+#include "city.h"
+
 using std::map;
 using std::multimap;
 using std::pair;
 using std::string;
+using std::vector;
 
 using namespace V::GeometryTier;
 
-const string savePath = "./../data/";
-      
-      
-      
-      
-
-const vector<string> smallDataList = {"pr144",
-                                      "a280",
-                                      "pcb442",
-                                      "d493",
-                                      "vm1084",
-                                      "d1291"};
-
 class HeuristicAlgorithm {
-    private:
+   private:
+
+    float m_selectionPressure = 3;
+    float m_eliteProportion = 0.2;
+    float m_crossoverParameter = 0.7;
+    float m_mutationParameter = 0.2;
+    int m_population = 100;
+    int m_generation = 10000000;
+    string m_mutation = "inversion";
+
+    vector<vector<float>> m_distanceMatrix;
+
+    string m_tspFile ;
+    string m_saveFile;
+
+    string m_distanceMatrixFile = "./../data/dist.txt";
+
+    VoronoiDiagram2DC m_VD;
+    // VoronoiDiagramCIC m_VD;
+    QuasiTriangulation2D m_QT;
+    BetaUniverse2D m_BU;
+    vector<City> m_cities;
+
+    pair<float, vector<int>> m_bestSolution = {0, {}};
+    int m_currGeneration = 0;
+
+    vector<rg_Circle2D> m_circles;
+    vector<pair<int, int>> m_candidateEdges;
+
+    map<pair<double, double>, int> m_circlesWithID;
+
+    clock_t start, end;
+    float result;
     
-     vector<string> largeDataList = {"pr1002",
-                                     "pcb3038",
-                                     "rl5934",
-                                     "d15112",
-                                     "pla33810",
-                                     "pla85900"};
+    float VDTime;
+    float DTTime;
+    float MSTTime;
+    float MPMTime;
+    float pathTime;
+    float totalTime;
+    float fitnessValue;
 
-     float  m_selectionPressure  = 3;
-     float  m_eliteProportion    = 0.2;
-     float  m_crossoverParameter = 0.7;
-     float  m_mutationParameter  = 0.2;
-     int    m_population         = 100;
-     int    m_generation         = 10000000;
-     string m_mutation           = "inversion";
+   public:
+    HeuristicAlgorithm() {};
+    HeuristicAlgorithm(const string& path, const string& fileName, const string& algorithm);
+    ~HeuristicAlgorithm();
 
-     vector<vector<float>> m_distanceMatrix;
+    float selectionPressure() const { return m_selectionPressure; }
 
-     string m_tspFile  = savePath + smallDataList[0] + ".txt";
-     string m_saveFile = savePath + smallDataList[0] + "_result.txt";
-     
-     
-     string m_distanceMatrixFile = "./../data/dist.txt";
+   private:
+    vector<pair<float, vector<int>>> initialize_chromosome(const int& population);
+    vector<pair<float, vector<int>>> selection(const vector<pair<float, vector<int>>>& chromosomes);
+    vector<pair<float, vector<int>>> evaluation(const vector<vector<int>>& populations);
+    vector<pair<float, vector<int>>> crossover(vector<pair<float, vector<int>>>& selectionPopulations);
+    void mutation(pair<float, vector<int>>& offspring);
 
+    void generate_vd();
+    vector<pair<float, vector<int>>> initialize_chromosome_with_christofides_algorithm();
+    vector<pair<float, vector<int>>> initialize_chromosome_with_VD(const int& population);
+    vector<int> generate_chromosome(const list<VFace2D*>& faces);
 
-     VoronoiDiagram2DC m_VD;
-     // VoronoiDiagramCIC m_VD;
-     QuasiTriangulation2D m_QT;
-     BetaUniverse2D m_BU;
-     vector<City> m_cities;
+    bool check_same_chain(VFace2D* currFace, VFace2D* targetFace, vector<list<VFace2D*>>& connectedChain);
+    bool check_target_face_state(VFace2D* targetFace, map<VFace2D*, int>& connectedFaces);
+    void connect_chain(VFace2D* currFace,
+                       VFace2D* targetFace,
+                       multimap<int, VFace2D*>& chainCountEdges,
+                       vector<list<VFace2D*>>& connectedChain,
+                       map<VFace2D*, int>& connectedFaces);
+    void generate_mst_mpm();
+    void generate_minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces);
+    vector<int> generate_path();
 
-     pair<float, vector<int>> m_bestSolution = {0, {}};
-     int m_currGeneration = 0;
+    int find_parents(vector<int>& set, const int id);
+    void union_parents(vector<int>& set, int a, int b);
+    void erase_node(map<int, vector<int>>& edge, const int& value);
 
-     vector<rg_Circle2D> m_circles;
-     vector<pair<int, int>> m_candidateEdges;
+    void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);
 
-     map<pair<double, double>, int> m_circlesWithID;
+    void insertion_mutation(pair<float, vector<int>>& crossoverPopulations);
+    void inversion_mutation(pair<float, vector<int>>& crossoverPopulations);
+    void displacement_mutation(pair<float, vector<int>>& crossoverPopulations);
 
-     clock_t start, end;
-     float result;
-    public:
-    
-        HeuristicAlgorithm();  
-        ~HeuristicAlgorithm();  
+    void check_same_value(vector<int>& edge, const int& value);
+    void erase_value_from_edge(map<int, vector<int>>& edge, const int& value);
+    vector<pair<float, vector<int>>*> select_parents(vector<pair<float, vector<int>>>& selectionPopulations);
+    float evaluate_function(const vector<int>& population);
+    void save_best_solution(const vector<float>& info);
 
-        float selectionPressure() const { return m_selectionPressure; }
-        
-        
-    private:
-        vector<pair<float, vector<int>>> initialize_chromosome(const int& population);
-        vector<pair<float, vector<int>>> selection(const vector<pair<float, vector<int>>>& chromosomes);
-        vector<pair<float, vector<int>>> evaluation(const vector<vector<int>>& populations);
-        vector<pair<float, vector<int>>> crossover(vector<pair<float, vector<int>>>& selectionPopulations);
-        void mutation(pair<float, vector<int>>& offspring);
-        
-        void generate_vd();
-        vector<pair<float, vector<int>>> initialize_chromosome_with_christofides_algorithm();
-        vector<pair<float, vector<int>>> initialize_chromosome_with_VD(const int& population);
-        vector<int> generate_chromosome(const list<VFace2D*>& faces);
+    pair<float, vector<int>> find_best_fitness(const vector<pair<float, vector<int>>>& populations);
 
-        bool check_same_chain(VFace2D* currFace, VFace2D* targetFace, vector<list<VFace2D*>>& connectedChain);
-        bool check_target_face_state(VFace2D* targetFace, map<VFace2D*, int>& connectedFaces);
-        void connect_chain(VFace2D* currFace,
-                           VFace2D* targetFace,
-                           multimap<int, VFace2D*>& chainCountEdges,
-                           vector<list<VFace2D*>>& connectedChain,
-                           map<VFace2D*, int>& connectedFaces);
-        void generate_mst_mpm();
-        void generate_minimum_perfect_matching(const vector<rg_Circle2D>& oddFaces);
-        vector<int> generate_path();
+    void generate_cities();
+    void generate_distance_matrix();
+    int generate_random_int(const int& min, const int& max);
+    float generate_random_float(const float& min, const float& max);
 
-        int find_parents(vector<int>& set, const int id);
-        void union_parents(vector<int>& set, int a, int b);
-        void erase_node(map<int, vector<int>>& edge, const int& value);
-
-        void order_crossover(vector<pair<float, vector<int>>>& selectionPopulations);
-        
-        void insertion_mutation(pair<float, vector<int>>& crossoverPopulations);
-        void inversion_mutation(pair<float, vector<int>>& crossoverPopulations);
-        void displacement_mutation(pair<float, vector<int>>& crossoverPopulations);
-
-        void check_same_value(vector<int>& edge, const int& value);
-        void erase_value_from_edge(map<int, vector<int>>& edge, const int& value);
-        vector<pair<float, vector<int>>*> select_parents(vector<pair<float, vector<int>>>& selectionPopulations);
-        float evaluate_function(const vector<int>& population);
-        void save_best_solution(const vector<float>& info);
-
-        pair<float, vector<int>> find_best_fitness(const vector<pair<float, vector<int>>>& populations);
-
-        void generate_cities();
-        void generate_distance_matrix();
-        int generate_random_int(const int& min, const int& max);
-        float generate_random_float(const float& min, const float& max);
-
-        void save_vertex(const string& path, const list<VVertex2D*> vertices);
-        void save_edge(const string& path, const list<VEdge2D*> edges);
-        void save_face(const string& path, const list<VFace2D*> faces);
+    void save_vertex(const string& path, const list<VVertex2D*> vertices);
+    void save_edge(const string& path, const list<VEdge2D*> edges);
+    void save_face(const string& path, const list<VFace2D*> faces);
 };
