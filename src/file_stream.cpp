@@ -39,7 +39,7 @@ void FileStream::read(const string& fileName) {
 
     for (auto& it : a) {
         if (it.second > 1) {
-            std::cout << "warn" << std::endl;
+            std::cout << it.first.first << ", " << it.first.second << std::endl;
         }
     }
     
@@ -75,7 +75,7 @@ void FileStream::read_distance_matrix(const string& fileName) {
     
     if(file) {
         while(std::getline(file, line)) {
-            // if (file.eof()) break;
+            if (file.eof()) break;
             if (run < 1) {
                 ++run;
                 continue;
