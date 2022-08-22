@@ -1,3 +1,4 @@
+import math
 import matplotlib.pyplot as plt
 
 def read_point(file_path) :
@@ -53,6 +54,24 @@ def read_answer(name) :
             li.append([])
             x = line
             li[-1].append(int(x))
+    return info, li
+
+def read_opt(name) :
+    path = name
+    li = []
+    info = []
+    i = 0
+    with open (path, 'r') as f :
+        for line in f :
+            if i < 8 :
+                i += 1
+                info.append(line)
+                continue
+            li.append([])
+            x = line
+            x = int(x)
+            x -= 1
+            li[-1].append(x)
     return info, li
 
 def read_vertex(file_path) :
@@ -136,7 +155,7 @@ def draw_coordinate(_list, _c = 'black', _s = 5 , _alpha = 1, _marker = '.') :
         yli.append(_list[i][1])
     plt.scatter(xli, yli, c= _c, s= _s, alpha= _alpha, marker= _marker)
     
-def draw_arrow(_list, _color = 'black' ,_line_style = 'solid') :
+def draw_arrow(_list, _color = 'black' ,_line_style = 'solid', _alpha = 0.5) :
     """ draw arrow.
 
     Args:
@@ -151,7 +170,7 @@ def draw_arrow(_list, _color = 'black' ,_line_style = 'solid') :
         end_y = _list[i][3]
         plt.annotate('', xy=(end_x, end_y), xytext = (start_x, start_y),  arrowprops={'edgecolor': _color, 
                                                                                       'facecolor': 'red', 
-                                                                                      'alpha' : 0.5, 
+                                                                                      'alpha' : _alpha, 
                                                                                       'arrowstyle' : '->',  
                                                                                       'linestyle': _line_style})
         
@@ -172,41 +191,75 @@ def draw_line(_list, _color = 'black' ,_line_style = 'solid', _line_width = 0.5)
         plt.plot([start_x, end_x], [start_y, end_y], linestyle = _line_style, color = _color, lw = _line_width)
         
 
+def evaluate(list) :
+    result = 0
+    for li in list :
+        x1 = li[0]
+        y1 = li[1]
+        x2 = li[2]
+        y2 = li[3]
+
+        a = (x2 - x1)
+        b = (y2 - y1)
+        result += math.sqrt((a*a) + (b*b))
+    
+    return result
+
 import draw as draw
    
 if __name__ == '__main__' :
     plt.axes().set_aspect('equal')  # xy 비율
-    plt.xlim(0,5000)
-    plt.ylim(0,5000)
+    # plt.xlim(80000,200000)
+    # plt.ylim(80000,200000)
     
-    read_path = './data/tsp_data.txt'
+    read_path   = './data/tsp_data.txt'
     vertex_path = './data/answer_voronoi_vertices.txt'
-    edge_path = './data/answer_voronoi_edge.txt'
-    face_path = './data/answer_voronoi_face.txt'
-    answer_path = './data/result.txt'
+    edge_path   = './data/answer_voronoi_edge.txt'
+    face_path   = './data/answer_voronoi_face.txt'
+    answer_path = './data/pla33810result.txt'
+    opt_path    = './data/pla33810opt.txt'
     
     
-    generate = read_tsp_point(read_path)
-    vertices = read_vertex(vertex_path)
-    edges = read_edge(edge_path)
-    faces = read_face(face_path)
+    generate    = read_tsp_point(read_path)
+    vertices    = read_vertex(vertex_path)
+    edges       = read_edge(edge_path)
+    faces       = read_face(face_path)
+    mst         = read_edge('./data/mst.txt')
+    odd_face    = read_face('./data/odd_face.txt')
+    odd_mst     = read_edge('./data/mpm.txt')
+    euler       = read_edge('./data/euler_path.txt')
+    hamiltonian = read_edge('./data/hamiltonian_path.txt')
+    _, answer   = read_answer(answer_path)
+    _, opt      = read_opt(opt_path)
     
-    temp_edge = read_edge('./data/result1.txt')
-    draw_line(temp_edge, 'green', _line_width= 2)
     
-    # odd_face = read_face('./data/odd_face.txt')
+    # ----------------------------------------- generator
+    draw_coordinate(faces, 'blue', 20)
+    
+    # ----------------------------------------- mst
+    # draw_line(mst, _line_width= 1)
+    
+    # ----------------------------------------- odd faces
     # draw_coordinate(odd_face, 'red', 100)
-    # odd_edge = read_edge('./data/odd_edge.txt')
-    # draw_line(odd_edge,'red', _line_style = ":", _line_width = 3)
     
-    _, answer = read_answer(answer_path)
+    # ----------------------------------------- odd mpm
+    # draw_line(odd_mst,'red', _line_style = ":", _line_width = 2)
+    
+    # ----------------------------------------- euler path
+    # draw_line(euler)
+    # draw_arrow(euler, _alpha = 1)
+    
+    # ----------------------------------------- hamiltonian path
+    # draw_line(hamiltonian)
+    # draw_arrow(hamiltonian, _alpha = 1)
+
     
     
     
+    # -----------------------------------------
     # draw_coordinate(li, _s = 30)
     # draw_coordinate(vertices, 'r', 5, _alpha = 0.5, _marker = 'v')
-    draw_line(edges)
-    draw_coordinate(faces, 'blue', 20)
+    # draw_line(edges)     
     # draw_line(unbounded_edge, 'red', 'dotted')
     # draw_arrow(edge)
     # draw_arrow(unbounded_edge, 'red', 'dotted')
@@ -224,18 +277,38 @@ if __name__ == '__main__' :
     # draw.draw_coordinate([face[int(result[-1][0])]], 'red', 10)
     
     
-    result_line = []
-    for i in range(len(answer)-1) :
-        index = int(answer[i][0])
-        index2 = int(answer[i+1][0])
-        result_line.append([])
-        result_line[-1].append(faces[index][0])
-        result_line[-1].append(faces[index][1])
-        result_line[-1].append(faces[index2][0])
-        result_line[-1].append(faces[index2][1])
+    # result_line = []
+    # for i in range(len(answer)-1) :
+    #     index = int(answer[i][0])
+    #     index2 = int(answer[i+1][0])
+    #     result_line.append([])
+    #     result_line[-1].append(faces[index][0])
+    #     result_line[-1].append(faces[index][1])
+    #     result_line[-1].append(faces[index2][0])
+    #     result_line[-1].append(faces[index2][1])
         
-    draw_line(result_line, 'green', _line_width = 2)
+    opt_line = []
+    for i in range(len(opt)-1) :
+        index = int(opt[i][0])
+        index2 = int(opt[i+1][0])
+        opt_line.append([])
+        opt_line[-1].append(faces[index][0])
+        opt_line[-1].append(faces[index][1])
+        opt_line[-1].append(faces[index2][0])
+        opt_line[-1].append(faces[index2][1])
+    opt_line.append([])
+    opt_line[-1].append(faces[opt[0][0]][0])
+    opt_line[-1].append(faces[opt[0][0]][1])
+    opt_line[-1].append(faces[opt[-1][0]][0])
+    opt_line[-1].append(faces[opt[-1][0]][1])
+        
+    # draw_line(result_line, 'green', _line_width = 2)
+    draw_line(opt_line, _line_width = 1)
+    # draw_coordinate([faces[answer[0][0]]], 'red', 50)
+    # draw_coordinate([faces[answer[-1][0]]], 'red', 50)
     # ====================================
+    
+    print(evaluate(opt_line))
     
     
     plt.savefig(f'data/vd.png')
