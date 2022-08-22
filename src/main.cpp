@@ -21,7 +21,7 @@ int main(int, char**) {
     //     std::cout << str << std::endl;
     //     HeuristicAlgorithm heurisic(savePath, str, algorithm);
     // }
-    HeuristicAlgorithm heurisic(savePath, smallDataList[0], algorithm);
+    HeuristicAlgorithm heurisic(savePath, "sample", algorithm);
     
     std::cout << "Hello, world!\n";
 }
