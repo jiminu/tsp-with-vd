@@ -204,7 +204,9 @@ void HeuristicAlgorithm::generate_mst_mpm() {
             mstOut << m_circles[startPointID].getX() << "," << m_circles[startPointID].getY() << "," 
                    << m_circles[endPointID].getX()  << "," << m_circles[endPointID].getY()  << "\n";
             
+            // ---------------------------------------------------
             m_candidateEdges.push_back({startPointID, endPointID});
+            // ---------------------------------------------------
             m_candidateEdges.push_back({startPointID, endPointID});
             if (resultEdges.size() == m_cities.size() - 1) break;
             continue;
@@ -824,25 +826,25 @@ vector<pair<float, vector<int>>> HeuristicAlgorithm::evaluation(const vector<vec
 
 float HeuristicAlgorithm::evaluate_function(const vector<int>& population) {
     float result = 0;
-    // for (int chromosome = 0; chromosome < population.size(); ++chromosome) {
-    //     if (chromosome != population.size() - 1) {
-    //         result += m_cities[population[chromosome]].distance_to(m_cities[population[chromosome + 1]]);
-    //     }
-
-    //     else {
-    //         result += m_cities[population[chromosome]].distance_to(m_cities[population[0]]);
-    //     }
-    // };
-    
     for (int chromosome = 0; chromosome < population.size(); ++chromosome) {
         if (chromosome != population.size() - 1) {
-            result += m_distanceMatrix[population[chromosome]][population[chromosome+1]];
+            result += m_cities[population[chromosome]].distance_to(m_cities[population[chromosome + 1]]);
         }
 
         else {
-            result += m_distanceMatrix[population[chromosome]][population[0]];
+            result += m_cities[population[chromosome]].distance_to(m_cities[population[0]]);
         }
     };
+    
+    // for (int chromosome = 0; chromosome < population.size(); ++chromosome) {
+    //     if (chromosome != population.size() - 1) {
+    //         result += m_distanceMatrix[population[chromosome]][population[chromosome+1]];
+    //     }
+
+    //     else {
+    //         result += m_distanceMatrix[population[chromosome]][population[0]];
+    //     }
+    // };
 
     return result;
 }
@@ -908,13 +910,13 @@ void HeuristicAlgorithm::generate_cities() {
     FileStream file;
     file.read(m_tspFile);
     m_cities = file.get_cities();
-    for (int i = 0; i < m_cities.size(); ++i) {
-        vector<float> tempVector;
-        for (int j = 0; j < m_cities.size(); ++j) {
-            tempVector.push_back(m_cities[i].distance_to(m_cities[j]));
-        }
-        m_distanceMatrix.push_back(tempVector);
-    }
+    // for (int i = 0; i < m_cities.size(); ++i) {
+    //     vector<float> tempVector;
+    //     for (int j = 0; j < m_cities.size(); ++j) {
+    //         tempVector.push_back(m_cities[i].distance_to(m_cities[j]));
+    //     }
+    //     m_distanceMatrix.push_back(tempVector);
+    // }
 }
 
 void HeuristicAlgorithm::generate_distance_matrix() {
@@ -926,7 +928,7 @@ void HeuristicAlgorithm::generate_distance_matrix() {
 
 void HeuristicAlgorithm::save_best_solution(const vector<float>& info) {    
     FileStream file;
-    string savePath = m_savePath + m_saveFile;
+    string savePath = m_saveFile;
     file.write(savePath, m_bestSolution, info);
 }
 

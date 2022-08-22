@@ -17,41 +17,62 @@ using std::string;
 
 using namespace V::GeometryTier;
 
+const string savePath = "./../data/";
+      
+      
+      
+      
+
+const vector<string> smallDataList = {"pr144",
+                                      "a280",
+                                      "pcb442",
+                                      "d493",
+                                      "vm1084",
+                                      "d1291"};
+
 class HeuristicAlgorithm {
     private:
-        
-        float m_selectionPressure  = 3;
-        float m_eliteProportion    = 0.2;
-        float m_crossoverParameter = 0.7;
-        float m_mutationParameter  = 0.2;
-        int m_population           = 100;
-        int m_generation           = 10000000;
-        string m_mutation          = "inversion";
-        
-        vector<vector<float>> m_distanceMatrix;
-
-        string m_tspFile  = "./../data/pr1002.txt";
-        string m_distanceMatrixFile  = "./../data/dist.txt";
-        
-        string m_savePath = "./../data/";
-        string m_saveFile = "pr1002_result.txt";
     
-        VoronoiDiagram2DC m_VD;
-        // VoronoiDiagramCIC m_VD;
-        QuasiTriangulation2D m_QT;
-        BetaUniverse2D m_BU;
-        vector<City> m_cities;
-        
-        pair<float, vector<int>> m_bestSolution = {0, {}};
-        int m_currGeneration = 0;
-        
-        vector<rg_Circle2D> m_circles;
-        vector<pair<int,int>> m_candidateEdges;
-        
-        map<pair<double, double>, int> m_circlesWithID;
+     vector<string> largeDataList = {"pr1002",
+                                     "pcb3038",
+                                     "rl5934",
+                                     "d15112",
+                                     "pla33810",
+                                     "pla85900"};
 
-        clock_t start, end;
-        float result;
+     float  m_selectionPressure  = 3;
+     float  m_eliteProportion    = 0.2;
+     float  m_crossoverParameter = 0.7;
+     float  m_mutationParameter  = 0.2;
+     int    m_population         = 100;
+     int    m_generation         = 10000000;
+     string m_mutation           = "inversion";
+
+     vector<vector<float>> m_distanceMatrix;
+
+     string m_tspFile  = savePath + smallDataList[0] + ".txt";
+     string m_saveFile = savePath + smallDataList[0] + "_result.txt";
+     
+     
+     string m_distanceMatrixFile = "./../data/dist.txt";
+
+
+     VoronoiDiagram2DC m_VD;
+     // VoronoiDiagramCIC m_VD;
+     QuasiTriangulation2D m_QT;
+     BetaUniverse2D m_BU;
+     vector<City> m_cities;
+
+     pair<float, vector<int>> m_bestSolution = {0, {}};
+     int m_currGeneration = 0;
+
+     vector<rg_Circle2D> m_circles;
+     vector<pair<int, int>> m_candidateEdges;
+
+     map<pair<double, double>, int> m_circlesWithID;
+
+     clock_t start, end;
+     float result;
     public:
     
         HeuristicAlgorithm();  
