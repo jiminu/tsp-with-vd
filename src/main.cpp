@@ -3,7 +3,7 @@
 
 int main(int, char**) {
     string savePath = "./../data/";
-    vector<string> largeDataList = {"pr1002",
+    vector<string> largeDataList = {"d1291",
                                     "pcb3038",
                                     "rl5934",
                                     "usa13509",
@@ -13,8 +13,8 @@ int main(int, char**) {
                                     "a280",
                                     "pcb442",
                                     "d493",
-                                    "vm1084",
-                                    "d1291"};
+                                    "pr1002",
+                                    "vm1084"};
     string algorithm = "christofides";
     
     // for (auto str : largeDataList) {
