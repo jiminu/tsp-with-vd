@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "file_stream.h"
-#include "QuasiTriangulation2D.h"
 #include "blossom.h"
 #include "euler.h"
 #include "hamiltonian.h"
@@ -17,57 +16,45 @@ HeuristicAlgorithm::HeuristicAlgorithm() {
     generate_cities();
     // generate_distance_matrix();
     
+    m_start = clock();
     // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
     vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
-    // vector<float> info = {m_selectionPressure, 
-    //                       m_crossoverParameter, 
-    //                       m_mutationParameter, 
-    //                       float(m_population), 
-    //                       float(m_generation),
-    //                       m_eliteProportion, 
-    //                       result / CLOCKS_PER_SEC};
-    // save_best_solution(info);
     
-
-    start = clock();
     for (int i = 0; i < m_generation; ++i) {
         populations = selection(populations);
         populations = crossover(populations);
         
         m_currGeneration = i;
-    //     // if (i % 100 == 0) {
         std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-        // }
-        end = clock();
-        if ((end - start) / CLOCKS_PER_SEC > 0.08) break;
+        
     }
-    end = clock();
-    // result = end - start;
-    // info = {m_selectionPressure, 
-    //                       m_crossoverParameter, 
-    //                       m_mutationParameter, 
-    //                       float(m_population), 
-    //                       float(m_generation),
-    //                       m_eliteProportion, 
-    //                       result / CLOCKS_PER_SEC};
+    m_end = clock();
     
-    // std::cout << "fitness : " << m_bestSolution.first << std::endl;
-    // for (const auto& it : m_bestSolution.second) {
-    //     std::cout << it << " -> ";
-    // }
-    // std::cout << m_bestSolution.second[0] << std::endl;
-    // std::cout << "runtime : " << result / CLOCKS_PER_SEC << "s" << std::endl;
-    // std::cout << "best solution : " << m_bestSolution.first << std::endl;
-    // save_best_solution(info);
+    m_result = m_end - m_start;
+    vector<float> info = {m_selectionPressure,
+                          m_crossoverParameter,
+                          m_mutationParameter,
+                          float(m_population),
+                          float(m_generation),
+                          m_eliteProportion,
+                          m_result / CLOCKS_PER_SEC};
+
+    std::cout << "fitness : " << m_bestSolution.first << std::endl;
+    for (const auto& it : m_bestSolution.second) {
+        std::cout << it << " -> ";
+    }
+    std::cout << m_bestSolution.second[0] << std::endl;
+    std::cout << "runtime : " << m_result / CLOCKS_PER_SEC << "s" << std::endl;
+    std::cout << "best solution : " << m_bestSolution.first << std::endl;
+    save_best_solution(info);
 }
 
 HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileName, const string& algorithm) {
     m_algorithm = algorithm;
     m_tspFile = path + fileName + ".txt";
     m_saveFile = path + fileName + "_result_" + algorithm + ".txt";
-    start = clock();
+    
     generate_cities();
-    // generate_distance_matrix();
     generate_vd();
     vector<pair<float, vector<int>>> populations = initialize_chromosome_with_christofides_algorithm();
 
@@ -82,6 +69,7 @@ HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileNam
                 << std::endl;
     information.close();
     
+    
     // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
     // // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
     // populations = initialize_chromosome(m_population);
@@ -91,32 +79,28 @@ HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileNam
                           float(m_population), 
                           float(m_generation),
                           m_eliteProportion, 
-                          result / CLOCKS_PER_SEC};
+                          0};
     // save_best_solution(info);
-    std::cout << "initialize time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
-    totalTime = (end - start) / CLOCKS_PER_SEC;
-    // for (auto it : populations) {
-    //     std::cout << it.first << std::endl;
-    // }
-    start = clock();
+    std::cout << "initialize time : " << (m_end - m_start) / CLOCKS_PER_SEC << "s" << std::endl;
+    totalTime = (m_end - m_start) / CLOCKS_PER_SEC;
+    
+    m_start = clock();
     for (int i = 0; i < m_generation; ++i) {
         populations = selection(populations);
         populations = crossover(populations);
         
         m_currGeneration = i;
-    //     // if (i % 100 == 0) {
-            std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-        // }
+        std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
     }
-    end = clock();
-    result = end - start;
+    m_end = clock();
+    m_result = m_end - m_start;
     info = {m_selectionPressure, 
                           m_crossoverParameter, 
                           m_mutationParameter, 
                           float(m_population), 
                           float(m_generation),
                           m_eliteProportion, 
-                          result / CLOCKS_PER_SEC};
+                          m_result / CLOCKS_PER_SEC};
     
     // std::cout << "fitness : " << m_bestSolution.first << std::endl;
     // for (const auto& it : m_bestSolution.second) {
@@ -962,15 +946,15 @@ pair<float, vector<int>> HeuristicAlgorithm::find_best_fitness(const vector<pair
     for (const auto& it : populations) {
         if (it.first < m_bestSolution.first || m_bestSolution.first == 0) {
             m_bestSolution = it;
-            end = clock();
-            result = end - start;
+            m_end = clock();
+            m_result = m_end - m_start;
             vector<float> info = {m_selectionPressure,
                                   m_crossoverParameter,
                                   m_mutationParameter,
                                   float(m_population),
                                   m_eliteProportion,
                                   float(m_currGeneration),
-                                  result / CLOCKS_PER_SEC};
+                                  m_result / CLOCKS_PER_SEC};
             save_best_solution(info);
         }
     }

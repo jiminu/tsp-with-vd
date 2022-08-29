@@ -1,15 +1,14 @@
 #pragma once
 
-#include <VoronoiDiagram2DC.h>
-#include <VoronoiDiagramCIC.h>
 
 #include <ctime>
 #include <map>
 #include <string>
 #include <vector>
 
-#include "BetaUniverse2D.h"
 #include "city.h"
+#include <VoronoiDiagramCIC.h>
+#include "BetaUniverse2D.h"
 
 using std::map;
 using std::multimap;
@@ -38,7 +37,6 @@ class HeuristicAlgorithm {
     string m_distanceMatrixFile = "./../data/dist.txt";
 
     VoronoiDiagram2DC m_VD;
-    // VoronoiDiagramCIC m_VD;
     QuasiTriangulation2D m_QT;
     BetaUniverse2D m_BU;
     vector<City> m_cities;
@@ -51,8 +49,7 @@ class HeuristicAlgorithm {
 
     map<pair<double, double>, int> m_circlesWithID;
 
-    clock_t start, end;
-    float result;
+    float m_start, m_end, m_result;
     
     float VDTime;
     float DTTime;

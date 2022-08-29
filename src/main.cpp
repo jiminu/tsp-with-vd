@@ -17,13 +17,11 @@ int main(int, char**) {
                                     "vm1084"};
     string algorithm = "christofides";
     
-    // for (auto str : dlist) {
-    //     std::cout << str << std::endl;
-    //     HeuristicAlgorithm heurisic(savePath, str, algorithm);
-    //     std::cout << std::endl;
-    // }
-    HeuristicAlgorithm heurisic(savePath, "d1291", algorithm);
-    // HeuristicAlgorithm heurisic;
+    for (auto str : largeDataList) {
+        std::cout << str << std::endl;
+        HeuristicAlgorithm heurisic(savePath, str, algorithm);
+        std::cout << std::endl;
+    }
     
     
     std::cout << "Hello, world!\n";
