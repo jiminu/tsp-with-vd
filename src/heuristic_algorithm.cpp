@@ -11,31 +11,14 @@
 #include "euler.h"
 #include "hamiltonian.h"
 
-HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileName, const string& algorithm) {
-    m_algorithm = algorithm;
-    m_tspFile = path + fileName + ".txt";
-    m_saveFile = path + fileName + "_result.txt";
-    start = clock();
+HeuristicAlgorithm::HeuristicAlgorithm() {
+    m_tspFile = "./../data/a280.txt";
+    m_saveFile = "./../dasta/a280_result.txt";
     generate_cities();
     // generate_distance_matrix();
-    generate_vd();
-    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_christofides_algorithm();
-
-    std::ofstream information(path+fileName+"_"+algorithm+".txt");
-    information << "voronoi diagram : " << VDTime << "\n" 
-                << "delaunay triangulation : " << DTTime << "\n" 
-                << "minimum spanning tree : " << MSTTime << "\n"
-                << "minimum perfect matching : " << MPMTime << "\n"
-                << "generate path : " << pathTime << "\n" 
-                << "total time : " << totalTime << "\n"
-                << "fitness value : " << fitnessValue
-                << std::endl;
-    information.close();
-    // float start = clock();
     
     // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
-    // // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
-    float end = clock();
+    vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
     // vector<float> info = {m_selectionPressure, 
     //                       m_crossoverParameter, 
     //                       m_mutationParameter, 
@@ -44,21 +27,20 @@ HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileNam
     //                       m_eliteProportion, 
     //                       result / CLOCKS_PER_SEC};
     // save_best_solution(info);
-    std::cout << "initialize time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
-    totalTime = (end - start) / CLOCKS_PER_SEC;
-    // for (auto it : populations) {
-    //     std::cout << it.first << std::endl;
-    // }
+    
 
-    // for (int i = 0; i < m_generation; ++i) {
-    //     populations = selection(populations);
-    //     populations = crossover(populations);
+    start = clock();
+    for (int i = 0; i < m_generation; ++i) {
+        populations = selection(populations);
+        populations = crossover(populations);
         
-    //     m_currGeneration = i;
+        m_currGeneration = i;
     //     // if (i % 100 == 0) {
-    //         std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
-    //     // }
-    // }
+        std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
+        // }
+        end = clock();
+        if ((end - start) / CLOCKS_PER_SEC > 0.08) break;
+    }
     end = clock();
     // result = end - start;
     // info = {m_selectionPressure, 
@@ -78,6 +60,74 @@ HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileNam
     // std::cout << "best solution : " << m_bestSolution.first << std::endl;
     // save_best_solution(info);
 }
+
+HeuristicAlgorithm::HeuristicAlgorithm(const string& path, const string& fileName, const string& algorithm) {
+    m_algorithm = algorithm;
+    m_tspFile = path + fileName + ".txt";
+    m_saveFile = path + fileName + "_result_" + algorithm + ".txt";
+    start = clock();
+    generate_cities();
+    // generate_distance_matrix();
+    generate_vd();
+    vector<pair<float, vector<int>>> populations = initialize_chromosome_with_christofides_algorithm();
+
+    std::ofstream information(path+fileName+"_"+algorithm+".txt");
+    information << "voronoi diagram : " << VDTime << "\n" 
+                << "delaunay triangulation : " << DTTime << "\n" 
+                << "minimum spanning tree : " << MSTTime << "\n"
+                << "minimum perfect matching : " << MPMTime << "\n"
+                << "generate path : " << pathTime << "\n" 
+                << "total time : " << totalTime << "\n"
+                << "fitness value : " << fitnessValue
+                << std::endl;
+    information.close();
+    
+    // vector<pair<float, vector<int>>> populations = initialize_chromosome_with_VD(m_population);
+    // // vector<pair<float, vector<int>>> populations = initialize_chromosome(m_population);
+    // populations = initialize_chromosome(m_population);
+    vector<float> info = {m_selectionPressure, 
+                          m_crossoverParameter, 
+                          m_mutationParameter, 
+                          float(m_population), 
+                          float(m_generation),
+                          m_eliteProportion, 
+                          result / CLOCKS_PER_SEC};
+    // save_best_solution(info);
+    std::cout << "initialize time : " << (end - start) / CLOCKS_PER_SEC << "s" << std::endl;
+    totalTime = (end - start) / CLOCKS_PER_SEC;
+    // for (auto it : populations) {
+    //     std::cout << it.first << std::endl;
+    // }
+    start = clock();
+    for (int i = 0; i < m_generation; ++i) {
+        populations = selection(populations);
+        populations = crossover(populations);
+        
+        m_currGeneration = i;
+    //     // if (i % 100 == 0) {
+            std::cout << "Generation " << i << " : " << find_best_fitness(populations).first << std::endl;
+        // }
+    }
+    end = clock();
+    result = end - start;
+    info = {m_selectionPressure, 
+                          m_crossoverParameter, 
+                          m_mutationParameter, 
+                          float(m_population), 
+                          float(m_generation),
+                          m_eliteProportion, 
+                          result / CLOCKS_PER_SEC};
+    
+    // std::cout << "fitness : " << m_bestSolution.first << std::endl;
+    // for (const auto& it : m_bestSolution.second) {
+    //     std::cout << it << " -> ";
+    // }
+    // std::cout << m_bestSolution.second[0] << std::endl;
+    // std::cout << "runtime : " << result / CLOCKS_PER_SEC << "s" << std::endl;
+    // std::cout << "best solution : " << m_bestSolution.first << std::endl;
+    save_best_solution(info);
+}
+
 
 HeuristicAlgorithm::~HeuristicAlgorithm() {
     
@@ -767,7 +817,7 @@ void HeuristicAlgorithm::displacement_mutation(pair<float, vector<int>>& crossov
 vector<pair<float, vector<int>>> HeuristicAlgorithm::initialize_chromosome(const int& population) {
     vector<pair<float, vector<int>>> chromosomes;
     vector<int> chromosome;
-    for (int i = 0; i < m_distanceMatrix.size(); ++i) {
+    for (int i = 0; i < m_circles.size(); ++i) {
         chromosome.push_back(i);
     }
     

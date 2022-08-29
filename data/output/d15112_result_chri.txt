@@ -1,0 +1,8 @@
+fitness : 0
+selection pressure : 3
+crossover parameter : 0.7
+mutation parameter : 0.2
+population : 100
+elite proportion : 1000
+generation : 0.2
+time : 4.70606e-17

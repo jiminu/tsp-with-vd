@@ -27,7 +27,7 @@ class HeuristicAlgorithm {
     float m_crossoverParameter = 0.7;
     float m_mutationParameter = 0.2;
     int m_population = 100;
-    int m_generation = 10000000;
+    int m_generation = 1000;
     string m_mutation = "inversion";
 
     vector<vector<float>> m_distanceMatrix;
@@ -64,7 +64,7 @@ class HeuristicAlgorithm {
     string m_algorithm;
 
    public:
-    HeuristicAlgorithm() {};
+    HeuristicAlgorithm();
     HeuristicAlgorithm(const string& path, const string& fileName, const string& algorithm);
     ~HeuristicAlgorithm();
 

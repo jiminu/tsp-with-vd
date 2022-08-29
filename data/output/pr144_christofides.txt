@@ -1,0 +1,7 @@
+voronoi diagram : 0.002359
+delaunay triangulation : 0.000499
+minimum spanning tree : 0.000259
+minimum perfect matching : 0.000799
+generate path : 0.074852
+total time : 2.67754e+27
+fitness value : 67979.6

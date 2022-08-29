@@ -15,14 +15,23 @@ int main(int, char**) {
                                     "d493",
                                     "vm1084",
                                     "d1291"};
-    string algorithm = "christofides";
+    vector<string> dlist = { "pr144",
+                            "a280",
+                            "pcb442",
+                            "d493",
+                            "d1291",
+                            "fl1400"};
     
-    // for (auto str : largeDataList) {
+    string algorithm = "2app";
+    
+    // for (auto str : dlist) {
     //     std::cout << str << std::endl;
     //     HeuristicAlgorithm heurisic(savePath, str, algorithm);
     //     std::cout << std::endl;
     // }
-    HeuristicAlgorithm heurisic(savePath, "sample", algorithm);
+    HeuristicAlgorithm heurisic(savePath, "d1291", algorithm);
+    // HeuristicAlgorithm heurisic;
+    
     
     std::cout << "Hello, world!\n";
 }
